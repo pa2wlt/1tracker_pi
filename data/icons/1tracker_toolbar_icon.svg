@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   width="24"
+   height="24"
+   viewBox="0 0 24 24"
+   fill="none"
+   style="background-color: transparent"
+   version="1.1">
+  <rect
+     x="0"
+     y="0"
+     width="24"
+     height="24"
+     fill="#000000"
+     fill-opacity="0"
+     stroke="none" />
+  <g transform="translate(12,11.58) scale(1.40) translate(-12,-11.58)">
+    <path
+       d="M 12,3.75 C 8.95,3.75 6.55,6.2 6.55,9.2 c 0,3.9 4.48,8.95 5.2,9.68 c 0.14,0.13 0.36,0.13 0.5,0 c 0.72,-0.73 5.2,-5.78 5.2,-9.68 C 17.45,6.2 15.05,3.75 12,3.75 Z"
+       fill="__MARKER_FILL__"
+       fill-opacity="1"
+       stroke="__MARKER_STROKE__"
+       stroke-width="1.25"
+       stroke-linejoin="round"
+       stroke-linecap="round" />
+  </g>
+
+  <g transform="translate(7.7, 4.15)" fill="__BOAT_FILL__">
+    <g transform="scale(0.0162)">
+      <path d="M256 16c0-7 4.5-13.2 11.2-15.3s13.9 .4 17.9 6.1l224 320c3.4 4.9 3.8 11.3 1.1 16.6s-8.2 8.6-14.2 8.6l-224 0c-8.8 0-16-7.2-16-16l0-320zM212.1 96.5c7 1.9 11.9 8.2 11.9 15.5l0 224c0 8.8-7.2 16-16 16L80 352c-5.7 0-11-3-13.8-8s-2.9-11-.1-16l128-224c3.6-6.3 11-9.4 18-7.5zM5.7 404.3C2.8 394.1 10.5 384 21.1 384l533.8 0c10.6 0 18.3 10.1 15.4 20.3l-4 14.3C550.7 473.9 500.4 512 443 512L133 512C75.6 512 25.3 473.9 9.7 418.7l-4-14.3z"/>
+    </g>
+  </g>
+</svg>

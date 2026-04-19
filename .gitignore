@@ -1,0 +1,19 @@
+build/
+build-wx32/
+dist/
+out/
+Testing/
+tmp/
+*.user
+*.swp
+**/.DS_Store
+config/1tracker.dev.json
+config/*.local.json
+docs/nfl-tracking-api.pdf
+docs/nfl-tracking-api.md
+data/icons/1tracker_icon_nflstyle.svg
+data/icons/1tracker_icon_original.svg
+data/icons/1tracker_icon_triangle.svg
+docs/plan-connectivity-replay.md
+docs/Plan-Connectivity-Resilient Sending.md
+AGENTS.md

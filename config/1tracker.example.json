@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "endpoints": [
+    {
+      "name": "main",
+      "type": "http_json_with_header_key",
+      "enabled": true,
+      "includeAwaAws": true,
+      "sendIntervalMinutes": 1,
+      "url": "https://example.com/api/position",
+      "timeoutSeconds": 10,
+      "headerName": "X-API-Key",
+      "headerValue": "YOUR_SECRET_KEY"
+    }
+  ]
+}
