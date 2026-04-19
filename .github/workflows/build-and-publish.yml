@@ -1,0 +1,275 @@
+name: Build and Publish
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*.*.*']
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PKG_NAME: 1tracker_pi
+  PKG_VERSION: "0.1.0"
+
+jobs:
+
+  # ── Ubuntu 22.04 / wxGTK 3.0 (catalog target: ubuntu-gtk3-x86_64) ────────
+  build-ubuntu-22:
+    name: Ubuntu 22.04 (wx3.0)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            libwxgtk3.0-gtk3-dev \
+            libcurl4-openssl-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          cmake --install build --prefix staging
+          PKG_FILE="${PKG_NAME}-${PKG_VERSION}-ubuntu-gtk3-x86_64.tar.gz"
+          tar -czf "$PKG_FILE" -C staging .
+          echo "PKG_FILE=$PKG_FILE" >> "$GITHUB_ENV"
+          echo "PKG_SHA256=$(sha256sum "$PKG_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-22-package
+          path: ${{ env.PKG_FILE }}
+
+  # ── Ubuntu 24.04 / wxGTK 3.2 (catalog target: ubuntu-wx32-x86_64) ────────
+  build-ubuntu-24:
+    name: Ubuntu 24.04 (wx3.2)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            libwxgtk3.2-dev \
+            libcurl4-openssl-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel $(nproc)
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          cmake --install build --prefix staging
+          PKG_FILE="${PKG_NAME}-${PKG_VERSION}-ubuntu-wx32-x86_64.tar.gz"
+          tar -czf "$PKG_FILE" -C staging .
+          echo "PKG_FILE=$PKG_FILE" >> "$GITHUB_ENV"
+          echo "PKG_SHA256=$(sha256sum "$PKG_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ubuntu-24-package
+          path: ${{ env.PKG_FILE }}
+
+  # ── macOS 14 / arm64 / wx 3.2 (catalog target: darwin-wx32) ─────────────
+  build-macos:
+    name: macOS 14 arm64 (wx3.2)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: brew install wxwidgets@3.2
+
+      - name: Configure
+        run: |
+          # CMakeLists.txt auto-detects the @3.2 path; we set it explicitly
+          # as a fallback in case the brew prefix differs on this runner.
+          WX_CONFIG="/opt/homebrew/opt/wxwidgets@3.2/bin/wx-config-3.2"
+          [ -f "$WX_CONFIG" ] || WX_CONFIG="$(brew --prefix wxwidgets@3.2)/bin/wx-config"
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
+
+      - name: Build
+        run: cmake --build build --parallel $(sysctl -n hw.logicalcpu)
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          cmake --install build --prefix staging
+          MACOS_VER=$(sw_vers -productVersion)
+          PKG_FILE="${PKG_NAME}-${PKG_VERSION}-darwin-wx32-arm64-${MACOS_VER}-macos.tar.gz"
+          tar -czf "$PKG_FILE" -C staging .
+          echo "PKG_FILE=$PKG_FILE" >> "$GITHUB_ENV"
+          echo "PKG_SHA256=$(shasum -a 256 "$PKG_FILE" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-package
+          path: ${{ env.PKG_FILE }}
+
+  # ── Windows / MSVC x86 / wx 3.2 (catalog target: msvc-wx32) ─────────────
+  build-windows:
+    name: Windows MSVC x86 (wx3.2)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up MSVC x86
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x86
+
+      - name: Install dependencies via vcpkg
+        uses: lukka/run-vcpkg@v11
+        with:
+          vcpkgTriplet: x86-windows
+          runVcpkgInstall: true
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build `
+            -G "Visual Studio 17 2022" -A Win32 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x86-windows
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Package
+        shell: bash
+        run: |
+          cmake --install build --config Release --prefix staging
+          WIN_VER=$(powershell -command "(Get-WmiObject Win32_OperatingSystem).Version" | tr -d '\r')
+          PKG_FILE="${PKG_NAME}-${PKG_VERSION}-msvc-wx32-x86-${WIN_VER}-MSVC.tar.gz"
+          tar -czf "$PKG_FILE" -C staging .
+          echo "PKG_FILE=$PKG_FILE" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-package
+          path: ${{ env.PKG_FILE }}
+
+  # ── Flatpak / x86_64 (catalog target: flatpak-x86_64) ────────────────────
+  #
+  # NOTE: This job may need tuning. The manifest in flatpak/ references the
+  # opencpn-libs submodule as a separate git source so flatpak-builder can
+  # fetch it without network access to git submodule commands.
+  build-flatpak:
+    name: Flatpak x86_64
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install flatpak-builder
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y flatpak flatpak-builder
+          sudo flatpak remote-add --if-not-exists \
+            flathub https://flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y --noninteractive \
+            flathub org.freedesktop.Sdk//22.08 \
+            flathub org.freedesktop.Platform//22.08
+
+      - name: Build Flatpak extension
+        run: |
+          flatpak-builder --repo=flatpak-repo --force-clean \
+            flatpak-build \
+            flatpak/org.opencpn.OpenCPN.Plugin.1tracker.yaml
+
+      - name: Export bundle
+        run: |
+          PKG_FILE="${PKG_NAME}-${PKG_VERSION}-flatpak-x86_64.flatpak"
+          flatpak build-bundle flatpak-repo "$PKG_FILE" \
+            org.opencpn.OpenCPN.Plugin.1tracker
+          echo "PKG_FILE=$PKG_FILE" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak-package
+          path: ${{ env.PKG_FILE }}
+
+  # ── Publish to Cloudsmith (version tags only) ─────────────────────────────
+  #
+  # Requires secret CLOUDSMITH_API_KEY set in repository settings.
+  # Cloudsmith repos (create these in advance under the opencpn org):
+  #   opencpn/1tracker-alpha  – for master / development builds (manual upload)
+  #   opencpn/1tracker-beta   – for tags containing "beta" or "rc"
+  #   opencpn/1tracker-prod   – for release tags (e.g. v0.1.0)
+  #
+  # After upload, generate per-target catalog XML files and submit a PR to
+  # https://github.com/OpenCPN/plugins (see docs/todo.md).
+  publish:
+    name: Publish to Cloudsmith
+    needs: [build-ubuntu-22, build-ubuntu-24, build-macos, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Install Cloudsmith CLI
+        run: pip3 install cloudsmith-cli
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Select Cloudsmith repository
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" == *beta* || "$TAG" == *rc* ]]; then
+            echo "CS_REPO=opencpn/1tracker-beta" >> "$GITHUB_ENV"
+          else
+            echo "CS_REPO=opencpn/1tracker-prod" >> "$GITHUB_ENV"
+          fi
+          echo "CS_VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+
+      - name: Upload packages to Cloudsmith
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          for dir in ubuntu-22-package ubuntu-24-package macos-package windows-package; do
+            for f in "$dir"/*.tar.gz; do
+              [ -f "$f" ] || continue
+              NAME="$(basename "$f" .tar.gz)"
+              echo "→ Uploading $NAME @ $CS_VERSION to $CS_REPO"
+              cloudsmith push raw \
+                --name "$NAME" \
+                --version "$CS_VERSION" \
+                --summary "1tracker OpenCPN plugin tarball" \
+                --republish \
+                "$CS_REPO" "$f"
+            done
+          done

@@ -1,0 +1,32 @@
+id: org.opencpn.OpenCPN.Plugin.1tracker
+branch: stable
+runtime: org.opencpn.OpenCPN
+runtime-version: stable
+sdk: org.freedesktop.Sdk//22.08
+build-extension: true
+separate-locales: false
+appstream-compose: false
+
+# NOTE: The opencpn-libs submodule is listed as a separate git source so
+# flatpak-builder can fetch it independently (flatpak-builder does not run
+# git submodule commands). Update the commit hash here when opencpn-libs
+# is updated in the main repo.
+
+modules:
+  - name: 1tracker_pi
+    buildsystem: cmake
+    config-opts:
+      - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.1tracker
+      - -DOCPN_PLUGIN_LIBRARY_DESTINATION=lib/opencpn
+      - -DOCPN_PLUGIN_DATA_DESTINATION=share/opencpn/plugins/1tracker_pi/data
+      - -DBUILD_TESTING=OFF
+    sources:
+      - type: git
+        url: https://github.com/pa2wlt/1tracker_pi.git
+        branch: master
+        disable-fsckobjects: true
+      - type: git
+        url: https://github.com/OpenCPN/opencpn-libs.git
+        commit: 1a6c1a7ba74c5bb0fdf141d7d21230f49929fcdc
+        dest: opencpn-libs
+        disable-fsckobjects: true
