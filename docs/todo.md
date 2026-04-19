@@ -4,8 +4,6 @@ To do:
 ++ Add Cloudsmith upload/publish workflow.
 ++ Create annotated tag `v0.1.0`.
 ++ Prepare and submit the catalog PR.
-+ Add actual hyperlinks (not just text) to online manual in help text (currently reads "See the online manual" with no URL).
-+ Add link to report issues in help text: https://github.com/pa2wlt/1tracker_pi/issues
 + Verify Windows and Linux runtime config path handling. `GetpPrivateApplicationDataLocation()` has only been exercised on macOS so far.
 + Prepare for non connectivity: keep last successfull sent, also after restart. Ask confirmation to send positions since then. Collect positions since then and send. No other NMEA data in that case. (See Plan-Connectivity-Resilient Sending.md)
 + Translations / .po files? Ask Rick how to deal with that.
@@ -31,4 +29,5 @@ Done:
 - Refactored large and complex routines.
 - Added min distance between positions (60m) via Haversine throttling in Scheduler.
 - Added `CHANGELOG.md` (Keep a Changelog format, v0.1.0 stub present).
-- Created user manual (`docs/manual.md`) covering installation, NFL setup, custom endpoints, all settings, troubleshooting, and issue link. Screenshots still to be added.
+- Created user manual (`docs/manual.md`) with screenshots, covering installation, NFL setup, custom endpoints, all settings, troubleshooting, and issue link.
+- Added clickable hyperlinks to online manual and issue tracker in the Info/Help screen.

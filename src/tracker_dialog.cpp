@@ -653,11 +653,32 @@ private:
         infoPanel_, wxID_ANY,
         "The 1tracker plugin automatically sends your location to a website "
         "via API calls. You can configure a custom website, or a standard "
-        "noforeignland endpoint.\n\nSee the online manual for specific "
-        "configuration options. For functional changes or issues, please "
-        "contact the author.");
+        "noforeignland endpoint.");
     infoBody->Wrap(kPreferencesDialogWidth - 80);
-    infoSizer->Add(infoBody, 0, wxBOTTOM, 12);
+    infoSizer->Add(infoBody, 0, wxBOTTOM, 8);
+
+    auto* manualLabel =
+        new wxStaticText(infoPanel_, wxID_ANY, "Online manual: ");
+    infoSizer->Add(manualLabel, 0);
+    infoManualLink_ = new wxHyperlinkCtrl(
+        infoPanel_, wxID_ANY,
+        "github.com/pa2wlt/1tracker_pi/blob/master/docs/manual.md",
+        "https://github.com/pa2wlt/1tracker_pi/blob/master/docs/manual.md");
+    infoManualLink_->SetNormalColour(wxColour(20, 78, 140));
+    infoManualLink_->SetHoverColour(wxColour(14, 58, 106));
+    infoManualLink_->SetVisitedColour(wxColour(84, 62, 132));
+    infoSizer->Add(infoManualLink_, 0, wxBOTTOM, 4);
+
+    auto* issuesLabel =
+        new wxStaticText(infoPanel_, wxID_ANY, "Report issues or requests: ");
+    infoSizer->Add(issuesLabel, 0);
+    infoIssuesLink_ = new wxHyperlinkCtrl(
+        infoPanel_, wxID_ANY, "github.com/pa2wlt/1tracker_pi/issues",
+        "https://github.com/pa2wlt/1tracker_pi/issues");
+    infoIssuesLink_->SetNormalColour(wxColour(20, 78, 140));
+    infoIssuesLink_->SetHoverColour(wxColour(14, 58, 106));
+    infoIssuesLink_->SetVisitedColour(wxColour(84, 62, 132));
+    infoSizer->Add(infoIssuesLink_, 0, wxBOTTOM, 12);
   }
 
   void buildInfoConfigPath(wxBoxSizer* infoSizer) {
@@ -1780,6 +1801,8 @@ private:
   bool suppressSelectionEvents_ = false;
   wxPanel* infoPanel_ = nullptr;
   wxHyperlinkCtrl* infoConfigPathLink_ = nullptr;
+  wxHyperlinkCtrl* infoManualLink_ = nullptr;
+  wxHyperlinkCtrl* infoIssuesLink_ = nullptr;
   wxPanel* listPanel_ = nullptr;
   wxPanel* detailPanel_ = nullptr;
   wxPanel* detailHeaderPanel_ = nullptr;
