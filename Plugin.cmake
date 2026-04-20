@@ -128,9 +128,6 @@ macro(late_init)
 
   if (APPLE)
     target_link_options(${PACKAGE_NAME} PRIVATE "-undefined" "dynamic_lookup")
-  elseif (UNIX AND NOT APPLE)
-    target_link_options(${PACKAGE_NAME} PRIVATE
-        "-Wl,--unresolved-symbols=ignore-in-shared-libs")
   endif ()
 
   # Build core logic and link everything — only when wx is available
