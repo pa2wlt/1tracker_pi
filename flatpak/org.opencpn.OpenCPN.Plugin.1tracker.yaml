@@ -7,19 +7,20 @@ build-extension: true
 separate-locales: false
 appstream-compose: false
 
-# NOTE: The opencpn-libs submodule is listed as a separate git source so
-# flatpak-builder can fetch it independently (flatpak-builder does not run
-# git submodule commands). Update the commit hash here when opencpn-libs
-# is updated in the main repo.
-
 modules:
-  - name: 1tracker_pi
+  - name: 1tracker
+    no-autogen: true
     buildsystem: cmake
     config-opts:
       - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.1tracker
-      - -DOCPN_PLUGIN_LIBRARY_DESTINATION=lib/opencpn
-      - -DOCPN_PLUGIN_DATA_DESTINATION=share/opencpn/plugins/1tracker_pi/data
-      - -DBUILD_TESTING=OFF
+      - -DCMAKE_BUILD_TYPE:STRING=Release
+      - -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+      - -DBUILD_TYPE:STRING=tarball
+      - -DBUILD_TESTING:BOOL=OFF
+      - -Uplugin_target
+    build-options:
+      cxxflags: -DFLATPAK -O3
+      cflags: -DFLATPAK -O3
     sources:
       - type: git
         url: https://github.com/pa2wlt/1tracker_pi.git

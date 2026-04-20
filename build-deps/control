@@ -1,0 +1,21 @@
+Source: opencpn-1tracker-pi
+Build-Depends: debhelper (>= 9),
+ cmake,
+ libcurl4-openssl-dev,
+ lsb-release,
+ base-files (<< 10) | libwxgtk3.2-dev | libwxgtk3.0-gtk3-dev,
+ base-files (>=10) | libwxgtk3.2-dev,
+ python3-pip,
+ python3-setuptools,
+ python3-wheel
+
+Standards-Version: 4.3.0
+Homepage: https://github.com/pa2wlt/1tracker_pi
+
+Description: Packages needed to build 1tracker_pi on Debian/Ubuntu.
+ The Build-Depends field can be used to install dependencies
+ using something like:
+ .
+ .   sudo apt install devscripts equivs
+ .   sudo mk-build-deps --install build-deps/control
+ .

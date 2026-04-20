@@ -1,0 +1,7 @@
+#pragma once
+
+#define PACKAGE_VERSION "@PKG_VERSION@"
+#define VERSION_MAJOR   @VERSION_MAJOR@
+#define VERSION_MINOR   @VERSION_MINOR@
+#define VERSION_PATCH   @VERSION_PATCH@
+#define PACKAGE         "@PKG_NAME@"
