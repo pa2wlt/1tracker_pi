@@ -1,4 +1,4 @@
-id: org.opencpn.OpenCPN.Plugin.1tracker
+id: org.opencpn.OpenCPN.Plugin.onetracker
 branch: stable
 runtime: org.opencpn.OpenCPN
 runtime-version: stable
@@ -8,11 +8,11 @@ separate-locales: false
 appstream-compose: false
 
 modules:
-  - name: 1tracker
+  - name: onetracker
     no-autogen: true
     buildsystem: cmake
     config-opts:
-      - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.1tracker
+      - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.onetracker
       - -DCMAKE_BUILD_TYPE:STRING=Release
       - -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
       - -DBUILD_TYPE:STRING=tarball
