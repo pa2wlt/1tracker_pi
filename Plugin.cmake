@@ -5,15 +5,15 @@
 
 # -------- Cloudsmith upload repos --------
 set(OCPN_TEST_REPO
-    "pa2wlt/1tracker_pi-alpha"
+    "opencpn/1tracker_pi-alpha"
     CACHE STRING "Default repository for untagged builds"
 )
 set(OCPN_BETA_REPO
-    "pa2wlt/1tracker_pi-beta"
+    "opencpn/1tracker_pi-beta"
     CACHE STRING "Default repository for tagged builds matching 'beta'"
 )
 set(OCPN_RELEASE_REPO
-    "pa2wlt/1tracker_pi-prod"
+    "opencpn/1tracker_pi-prod"
     CACHE STRING "Default repository for tagged builds not matching 'beta'"
 )
 
