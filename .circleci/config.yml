@@ -80,6 +80,7 @@ jobs:
           paths:
             - /tmp/local.cache.tar
             - /Users/distiller/project/cache
+      - run: find build-osx/app -type f -name "*.dylib" 2>/dev/null || echo "No dylibs found in build-osx/app"
       - run: >
           sh -c "otool -L build-osx/app/*/OpenCPN.app/Contents/PlugIns/lib1tracker_pi.dylib"
       - run: cd build-osx; /bin/bash < upload.sh

@@ -71,7 +71,7 @@ fi
 
 # nor-reproducible error on first invocation, seemingly tarball-conf-stamp
 # is not created as required.
-make VERBOSE=1 tarball || make VERBOSE=1 tarball
+make VERBOSE=1 tarball || make VERBOSE=1 tarball || { echo "ERROR: tarball build failed"; exit 1; }
 
 # Install cloudsmith needed by upload script
 python3 -m pip install -q --user cloudsmith-cli
