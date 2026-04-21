@@ -51,11 +51,11 @@ jobs:
     environment:
       - OCPN_TARGET: flatpak
       - CMAKE_BUILD_PARALLEL_LEVEL: 2
-      - BRANCH: 2208
+      - BRANCH: 2408
     parameters:
       cache-key:
         type: string
-        default: "fp-x86-20-v1"
+        default: "fp-x86-24-v1"
     <<: *flatpak-steps
 
   build-macos-universal:
