@@ -81,7 +81,7 @@ jobs:
             - /tmp/local.cache.tar
             - /Users/distiller/project/cache
       - run: >
-          sh -c "otool -L build-osx/app/files/lib/opencpn/lib1tracker_pi.dylib"
+          sh -c "otool -L build-osx/app/*/lib/opencpn/lib1tracker_pi.dylib"
       - run: cd build-osx; /bin/bash < upload.sh
       - run: ci/git-push.sh build-osx
 
