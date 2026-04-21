@@ -1,34 +1,38 @@
 id: org.opencpn.OpenCPN.Plugin.onetracker
-branch: stable
+
 runtime: org.opencpn.OpenCPN
 runtime-version: stable
 sdk: org.freedesktop.Sdk//24.08
 build-extension: true
 separate-locales: false
 appstream-compose: false
+finish-args:
+    - --socket=x11
+    - --socket=pulseaudio
+    - --filesystem=home
+    - --device=all
 
 modules:
-  - name: onetracker
-    no-autogen: true
-    buildsystem: cmake
-    config-opts:
-      - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.onetracker
-      - -DCMAKE_BUILD_TYPE:STRING=Release
-      - -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
-      - -DBUILD_TYPE:STRING=tarball
-      - -DBUILD_TESTING:BOOL=OFF
-      - -Uplugin_target
-    build-options:
-      cxxflags: -DFLATPAK -O3
-      cflags: -DFLATPAK -O3
-    sources:
-      - type: git
-        url: https://github.com/pa2wlt/1tracker_pi.git
-        branch: master
-        disable-fsckobjects: true
-        disable-submodules: true
-      - type: git
-        url: https://github.com/OpenCPN/opencpn-libs.git
-        commit: 1a6c1a7ba74c5bb0fdf141d7d21230f49929fcdc
-        dest: opencpn-libs
-        disable-fsckobjects: true
+    - @include opencpn-libs/flatpak/glu.yaml
+
+    - name: @app_id
+      no-autogen: true
+      buildsystem: cmake
+      config-opts:
+          - -DCMAKE_INSTALL_PREFIX=/app/extensions/org.opencpn.OpenCPN.Plugin.onetracker
+          - -DCMAKE_BUILD_TYPE:STRING=Release
+          - -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON
+          - -DBUILD_TYPE:STRING=tarball
+          - -Uplugin_target
+      build-options:
+          cxxflags: -DFLATPAK -O3
+          cflags: -DFLATPAK -O3
+      sources:
+          - type: git
+            url: ..
+            branch: HEAD
+          - type: git
+            url: https://github.com/OpenCPN/opencpn-libs.git
+            commit: 1a6c1a7ba74c5bb0fdf141d7d21230f49929fcdc
+            dest: opencpn-libs
+            disable-fsckobjects: true
