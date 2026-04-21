@@ -184,14 +184,23 @@ function (flatpak_target manifest)
     POST_BUILD
   )
 
-  # Script used to copy out files from the flatpak sandbox
-  file(WRITE ${CMAKE_BINARY_DIR}/copy_out [=[
-    appdir=$(find /run/build -maxdepth 3 -iname $1)
-    appdir=$(ls -t $appdir)       # Sort entries if there is more than one
-    appdir=${appdir%% *}          # Pick first entry
-    appdir=${appdir%%/lib*so}     # Drop filename, use remaining dir part
-    cp -ar $appdir/app $2
-  ]=])
+  # Host-side script to copy plugin files from the flatpak kept build dir.
+  # flatpak-builder --run cannot reliably write to host paths from inside the
+  # sandbox; read from .flatpak-builder/build/ directly instead.
+  file(WRITE "${CMAKE_BINARY_DIR}/copy_from_build.sh" [=[#!/bin/bash
+# Copy plugin from flatpak kept build dir to host app/files.
+# Usage: copy_from_build.sh <lib_name> <build_base_dir>
+lib="$1"
+base="$2"
+dest="$base/app/files"
+f=$(find "$base/.flatpak-builder/build" -maxdepth 8 \
+    -name "$lib" -path "*/app/files/*" 2>/dev/null | head -1)
+[ -z "$f" ] && { echo "Warning: $lib not found in $base/.flatpak-builder/build"; exit 0; }
+d="${f%/lib/opencpn/$lib}"
+mkdir -p "$dest"
+cp -ar "$d/." "$dest/"
+echo "Copied $d to $dest"
+]=])
 
   set(_fp_script "
     execute_process(
@@ -199,12 +208,10 @@ function (flatpak_target manifest)
         flatpak-builder --force-clean --keep-build-dirs
           ${CMAKE_BINARY_DIR}/app ${manifest}
     )
-    # Copy the data out of the sandbox to installation directory
+    # Copy the built files from the kept build dir on the host
     execute_process(
-      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMAND
-        flatpak-builder --run app ${manifest}
-           bash copy_out lib${PACKAGE_NAME}.so ${CMAKE_BINARY_DIR}
+      COMMAND bash ${CMAKE_BINARY_DIR}/copy_from_build.sh
+        lib${PACKAGE_NAME}.so ${CMAKE_BINARY_DIR}
     )
     if (NOT EXISTS app/files/lib/opencpn/lib${PACKAGE_NAME}.so)
       message(FATAL_ERROR \"Cannot find generated file lib${PACKAGE_NAME}.so\")
