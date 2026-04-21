@@ -26,6 +26,7 @@ modules:
         url: https://github.com/pa2wlt/1tracker_pi.git
         branch: master
         disable-fsckobjects: true
+        disable-submodules: true
       - type: git
         url: https://github.com/OpenCPN/opencpn-libs.git
         commit: 1a6c1a7ba74c5bb0fdf141d7d21230f49929fcdc
