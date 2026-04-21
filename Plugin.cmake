@@ -123,6 +123,7 @@ macro(late_init)
   target_include_directories(${PACKAGE_NAME} PRIVATE
       "${CMAKE_BINARY_DIR}/generated"
       "${CMAKE_SOURCE_DIR}/src"
+      "${CMAKE_SOURCE_DIR}/include"
   )
   target_compile_definitions(${PACKAGE_NAME} PRIVATE MAKING_PLUGIN)
 

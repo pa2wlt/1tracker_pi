@@ -7,7 +7,9 @@
 #include <memory>
 #include <string>
 
+#if wxCHECK_VERSION(3,1,6)
 #include <wx/bmpbndl.h>
+#endif
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/combobox.h>
@@ -153,7 +155,11 @@ private:
     path.AppendDir("uidata");
     path.AppendDir("MUI_flat");
     path.SetFullName(wxString::FromUTF8(filename));
+#if wxCHECK_VERSION(3,1,6)
     return wxBitmapBundle::FromSVGFile(path.GetFullPath(), size).GetBitmap(size);
+#else
+    return wxNullBitmap;
+#endif
   }
 };
 
