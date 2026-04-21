@@ -88,7 +88,7 @@ include_directories(
   ${_master_base}/wxWidgets/include/
   ${_wx_setup}
 )
-target_link_libraries(${PACKAGE_NAME}
+target_link_libraries(${PACKAGE_NAME} PUBLIC
   ${_libgorp}
   ${_qtlibs}/libQt5Core.so
   ${_qtlibs}/libQt5OpenGL.so
