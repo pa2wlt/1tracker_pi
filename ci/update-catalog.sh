@@ -17,21 +17,37 @@ python3 - <<'PYEOF'
 import urllib.request, json, re, datetime, os, sys
 
 repo = os.environ.get('CLOUDSMITH_REPO', 'pa2wlt/1tracker-alpha')
-api  = f"https://api.cloudsmith.io/v1/packages/{repo}/?page_size=200"
 
-with urllib.request.urlopen(api) as r:
-    packages = json.load(r)
+def build_num(ver):
+    """Extract the build number after '+' for version comparison."""
+    try:
+        return int(ver.split('+')[1].split('.')[0])
+    except Exception:
+        return 0
 
-items = packages if isinstance(packages, list) else packages.get('results', [])
+# Paginate through all packages, keeping the highest-build-number XML per filename
+best = {}   # filename -> (version, cdn_url)
+page = f"https://api.cloudsmith.io/v1/packages/{repo}/?page_size=100&q=filename:.xml"
 
-seen = set()
+while page:
+    with urllib.request.urlopen(page) as r:
+        data = json.load(r)
+    items = data if isinstance(data, list) else data.get('results', [])
+    for p in items:
+        fn  = p.get('filename', '')
+        url = p.get('cdn_url', '')
+        ver = p.get('version', '0')
+        if not fn.endswith('.xml'):
+            continue
+        if fn not in best or build_num(ver) > build_num(best[fn][0]):
+            best[fn] = (ver, url)
+    if isinstance(data, dict) and data.get('next'):
+        page = data['next']
+    else:
+        break
+
 entries = []
-for p in items:
-    fn  = p.get('filename', '')
-    url = p.get('cdn_url', '')
-    if not fn.endswith('.xml') or fn in seen:
-        continue
-    seen.add(fn)
+for fn, (ver, url) in sorted(best.items()):
     try:
         with urllib.request.urlopen(url) as r:
             content = r.read().decode('utf-8')
@@ -39,7 +55,7 @@ for p in items:
         content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL).strip()
         if '<plugin' in content:
             entries.append(content)
-            print(f"  + {fn}")
+            print(f"  + {fn} ({ver})")
     except Exception as e:
         print(f"  ! {fn}: {e}", file=sys.stderr)
 
