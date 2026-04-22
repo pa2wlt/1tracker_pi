@@ -240,6 +240,7 @@ jobs:
           sh -c "otool -L build-osx/app/*/OpenCPN.app/Contents/PlugIns/*.dylib"
       - run: cd build-osx; /bin/bash < upload.sh
       - run: ci/git-push.sh build-osx
+      - run: CLOUDSMITH_REPO=pa2wlt/1tracker-alpha ci/update-catalog.sh
 
   build-macos-intel-legacy:
       macos:
