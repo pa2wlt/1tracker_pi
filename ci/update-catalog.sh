@@ -21,6 +21,8 @@ elif [ -n "$CIRCLE_TAG" ]; then
 else
     REPO="pa2wlt/1tracker-alpha"
 fi
+# Export so the python heredoc below and the cloudsmith CLI see the same repo.
+export CLOUDSMITH_REPO="$REPO"
 CATALOG_FILE="/tmp/ocpn-plugins.xml"
 
 echo "Fetching XML metadata files from Cloudsmith repo: $REPO"
