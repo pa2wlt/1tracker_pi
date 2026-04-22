@@ -41,7 +41,7 @@ Pick the build that matches your operating system:
 2. Go to **Options** → **Plugins** tab
 3. Click **Install plugin from file**
 4. Select the downloaded `.tar.gz` file
-5. Restart OpenCPN when prompted
+5. Restart OpenCPN if prompted (on macOS you may not be asked)
 
 ---
 
