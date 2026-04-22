@@ -1,11 +1,10 @@
 To do:
-+ Prepare for OCPN Plugin Catalog:
-++ Add CI builds for Windows, macOS, Ubuntu, and Flatpak packaging.
-++ Add Cloudsmith upload/publish workflow.
-++ Create annotated tag `v0.1.0`.
-++ Prepare and submit the catalog PR.
++ Gather feedback from first-round beta testers on v0.1.0-beta1.
 + Verify Windows and Linux runtime config path handling. `GetpPrivateApplicationDataLocation()` has only been exercised on macOS so far.
 + Translations / .po files? Ask Rick how to deal with that.
++ Prepare and submit the OpenCPN plugin catalog PR once beta feedback is in.
++ Create annotated `v0.1.0` tag once we're ready for production (CI will route
+  untagged-beta tags to the beta repo, plain tags to the prod repo automatically).
 
 Future wishes for additional functionality:
 + Deal with non connectivity: keep last successfull sent, also after restart. Ask confirmation to send positions since then. Collect positions since then and send. No other NMEA data in that case. (See Plan-Connectivity-Resilient Sending.md)
