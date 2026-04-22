@@ -58,10 +58,11 @@ with open('/tmp/ocpn-plugins.xml', 'w') as f:
 print(f"Catalog written: {len(entries)} plugins")
 PYEOF
 
-echo "Uploading ocpn-plugins.xml to $REPO..."
+VERSION="$(date -u +%Y.%m.%d)"
+echo "Uploading ocpn-plugins.xml to $REPO (version $VERSION)..."
 cloudsmith push raw --no-wait-for-sync \
     --name "ocpn-plugins" \
-    --version "latest" \
+    --version "$VERSION" \
     --summary "OpenCPN plugin catalog for 1tracker_pi" \
     --republish \
     "$REPO" "$CATALOG_FILE"
