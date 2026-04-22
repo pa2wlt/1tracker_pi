@@ -37,7 +37,7 @@ while page:
         fn  = p.get('filename', '')
         url = p.get('cdn_url', '')
         ver = p.get('version', '0')
-        if not fn.endswith('.xml'):
+        if not fn.endswith('.xml') or fn == 'ocpn-plugins.xml':
             continue
         if fn not in best or build_num(ver) > build_num(best[fn][0]):
             best[fn] = (ver, url)
