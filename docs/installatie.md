@@ -32,9 +32,11 @@ De makkelijkste manier:
 > - Linux: `~/.opencpn/opencpn.conf`
 > - Windows: `%APPDATA%\opencpn\opencpn.ini`
 
+> **Let op:** Volg de stappen exact in deze volgorde. OpenCPN moet volledig afgesloten zijn voordat je het configuratiebestand aanpast — anders overschrijft OpenCPN jouw wijzigingen bij het afsluiten en werkt het niet.
+
 ### Regels toevoegen
 
-1. **Sluit OpenCPN volledig af**
+1. **Sluit OpenCPN volledig af** (niet alleen minimaliseren)
 2. Open het configuratiebestand in een teksteditor
 3. Zoek de sectie `[PlugIns]` — als die er niet is, voeg hem toe onderaan
 4. Zorg dat de sectie er zo uitziet:
