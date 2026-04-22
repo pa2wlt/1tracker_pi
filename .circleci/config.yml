@@ -302,6 +302,7 @@ jobs:
       - checkout
       - run: pip install -q cloudsmith-cli
       - run: ci/update-catalog.sh
+      - run: ci/cleanup-old-versions.sh
 
 std-filters: &std-filters
   filters:
