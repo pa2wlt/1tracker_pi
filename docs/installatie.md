@@ -14,50 +14,47 @@ eigen server.
 
 ---
 
-## Stap 1 — Aangepaste catalogus inschakelen
+## Stap 1 — Catalogus-URL instellen via het configuratiebestand
 
-OpenCPN blokkeert standaard het toevoegen van externe catalogi. Dit moet je eenmalig
-handmatig inschakelen door een regel toe te voegen aan het configuratiebestand.
+OpenCPN biedt in de UI geen veld voor een eigen catalogus-URL. De URL moet je
+direct in het configuratiebestand instellen.
 
-### Configuratiebestand openen
+### Configuratiebestand vinden
 
-De makkelijkste manier om het configuratiebestand te vinden:
+De makkelijkste manier:
 
 1. Klik in de OpenCPN-werkbalk op het **?-icoon**
 2. Kies **About OpenCPN**
-3. Je ziet daar de exacte naam en locatie van het configuratiebestand — klik erop om het direct te openen
+3. Je ziet daar de exacte locatie van het config-bestand — klik erop om het direct te openen
 
 > **Standaardlocaties ter referentie:**
 > - macOS: `~/Library/Preferences/opencpn/opencpn.conf`
 > - Linux: `~/.opencpn/opencpn.conf`
 > - Windows: `%APPDATA%\opencpn\opencpn.ini`
 
+### Regels toevoegen
+
 1. **Sluit OpenCPN volledig af**
 2. Open het configuratiebestand in een teksteditor
-3. Zoek de sectie `[PlugIns]` (als die er niet is, voeg hem toe onderaan)
-4. Voeg deze regel toe onder `[PlugIns]`:
+3. Zoek de sectie `[PlugIns]` — als die er niet is, voeg hem toe onderaan
+4. Zorg dat de sectie er zo uitziet:
 
-```
+```ini
+[PlugIns]
 CatalogExpert=1
+UpdateURL=https://dl.cloudsmith.io/public/pa2wlt/1tracker-alpha/raw/files/ocpn-plugins.xml
 ```
 
-5. Sla het bestand op en **open OpenCPN opnieuw**
+5. Sla het bestand op
 
 ---
 
-## Stap 2 — Alpha-catalogus toevoegen
+## Stap 2 — Catalogus bijwerken
 
-Nu de expertmodus is ingeschakeld:
-
-1. Ga naar **Opties** → tabblad **Plugins**
-2. Klik op **Catalogus bijwerken** (*Update catalog*)
-3. Er verschijnt nu een veld voor een **aangepaste URL** — voer in:
-
-```
-https://dl.cloudsmith.io/public/pa2wlt/1tracker-alpha/raw/files/ocpn-plugins.xml
-```
-
-4. Klik op **OK** en daarna opnieuw op **Catalogus bijwerken**
+1. Open OpenCPN opnieuw
+2. Ga naar **Opties** → tabblad **Plugins**
+3. Klik op **Catalogus bijwerken** (*Update catalog*)
+4. OpenCPN laadt nu de 1tracker-catalogus
 
 ---
 
