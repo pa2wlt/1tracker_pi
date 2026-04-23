@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <mutex>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -421,7 +422,7 @@ void OneTrackerPi::ShowPreferencesDialog(wxWindow* parent) {
 
 std::map<std::string, tracker_pi::EndpointUiState>
 OneTrackerPi::snapshotEndpointStatuses() const {
-  std::lock_guard<std::mutex> lock(endpointStatusMutex_);
+  std::lock_guard<std::shared_mutex> lock(endpointStatusMutex_);
   return endpointStatuses_;
 }
 
@@ -489,7 +490,7 @@ void OneTrackerPi::updateEndpointStatus(
     const tracker_pi::EndpointConfig& endpoint,
     const tracker_pi::EndpointSender::Result& result) {
   {
-    std::lock_guard<std::mutex> lock(endpointStatusMutex_);
+    std::lock_guard<std::shared_mutex> lock(endpointStatusMutex_);
     auto& endpointState =
         endpointStatuses_[tracker_pi::endpointStateKey(endpoint)];
     endpointState.status = result.success ? tracker_pi::EndpointUiStatus::Success
@@ -723,7 +724,7 @@ bool OneTrackerPi::saveConfiguration(const tracker_pi::RuntimeConfig& config,
 
 void OneTrackerPi::pruneEndpointStatuses() {
   {
-    std::lock_guard<std::mutex> lock(endpointStatusMutex_);
+    std::lock_guard<std::shared_mutex> lock(endpointStatusMutex_);
     for (auto it = endpointStatuses_.begin(); it != endpointStatuses_.end();) {
       const bool exists = std::any_of(
           runtimeConfig_.endpoints.begin(), runtimeConfig_.endpoints.end(),
@@ -765,7 +766,7 @@ void OneTrackerPi::applyRuntimeConfig(const tracker_pi::RuntimeConfig& config) {
 }
 
 OneTrackerPi::ToolbarState OneTrackerPi::computeToolbarState() const {
-  std::lock_guard<std::mutex> lock(endpointStatusMutex_);
+  std::lock_guard<std::shared_mutex> lock(endpointStatusMutex_);
   bool hasEnabledEndpoint = false;
   bool allEnabledSuccessful = true;
 

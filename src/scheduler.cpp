@@ -5,7 +5,9 @@
 #include <cmath>
 #include <ctime>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
+#include <thread>
 
 #ifdef _WIN32
 #include <windows.h>  // for EXCEPTION_POINTERS — must come before <eh.h>
@@ -76,7 +78,7 @@ Scheduler::Scheduler(StateStore& stateStore, PayloadBuilder& payloadBuilder,
 Scheduler::~Scheduler() { stop(); }
 
 void Scheduler::configure(const RuntimeConfig& config) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::shared_mutex> lock(mutex_);
   const auto previousNextSendTimes = nextSendTimes_;
   config_ = config;
   const auto now = Clock::now();
@@ -100,7 +102,6 @@ void Scheduler::start() {
 
 void Scheduler::stop() {
   stopRequested_ = true;
-  condition_.notify_all();
 
   if (worker_.joinable()) {
     worker_.join();
@@ -134,7 +135,7 @@ bool Scheduler::isEndpointDue(
 
 std::optional<std::pair<double, double>>
 Scheduler::lookupLastSuccessfulPosition(const std::string& key) const {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::shared_mutex> lock(mutex_);
   const auto it = lastSuccessfulPositions_.find(key);
   if (it == lastSuccessfulPositions_.end()) {
     return std::nullopt;
@@ -261,7 +262,7 @@ bool Scheduler::sendEndpoint(const Snapshot& snapshot,
 
 void Scheduler::scheduleNextSend(const std::string& key, Clock::time_point now,
                                  const EndpointConfig& endpoint) {
-  std::lock_guard<std::mutex> lock(mutex_);
+  std::lock_guard<std::shared_mutex> lock(mutex_);
   nextSendTimes_[key] =
       now + std::chrono::minutes(effectiveSendIntervalMinutes(endpoint));
   if (logFn_) {
@@ -280,7 +281,7 @@ Scheduler::tickContext() const {
   RuntimeConfig configCopy;
   std::map<std::string, Clock::time_point> nextSendTimesCopy;
   {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::shared_mutex> lock(mutex_);
     configCopy = config_;
     nextSendTimesCopy = nextSendTimes_;
   }
@@ -315,7 +316,7 @@ std::size_t Scheduler::tickAt(Clock::time_point now) {
 
     if (sendEndpoint(snapshot, endpoint)) {
       if (snapshot.hasValidPosition()) {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard<std::shared_mutex> lock(mutex_);
         lastSuccessfulPositions_[key] = {*snapshot.lat, *snapshot.lon};
       }
       ++sent;
@@ -352,16 +353,19 @@ void Scheduler::runLoop() {
   });
 #endif
 
+  // Poll-based loop: tick every second, but check stopRequested_ every
+  // 100 ms so stop() returns promptly. Avoids std::condition_variable
+  // which internally uses std::mutex — see scheduler.h for context.
+  auto nextTickAt = Clock::now() + std::chrono::seconds(1);
   while (!stopRequested_) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    const bool interrupted = condition_.wait_for(
-        lock, std::chrono::seconds(1),
-        [this] { return stopRequested_.load(); });
-    lock.unlock();
-
-    if (interrupted || stopRequested_) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (stopRequested_) {
       break;
     }
+    if (Clock::now() < nextTickAt) {
+      continue;
+    }
+    nextTickAt = Clock::now() + std::chrono::seconds(1);
 
     try {
       tick();

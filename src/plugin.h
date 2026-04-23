@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <map>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include <string>
 
 #include <wx/bitmap.h>
@@ -94,7 +94,9 @@ private:
   std::unique_ptr<tracker_pi::Scheduler> scheduler_;
   tracker_pi::RuntimeConfig runtimeConfig_;
   std::filesystem::path configPath_;
-  mutable std::mutex endpointStatusMutex_;
+  // std::shared_mutex instead of std::mutex — see state_store.h for the
+  // reason (MSVC/CRT mutex indirection crashes on some target machines).
+  mutable std::shared_mutex endpointStatusMutex_;
   std::map<std::string, tracker_pi::EndpointUiState> endpointStatuses_;
   bool initialized_ = false;
   // Flips to true at the top of DeInit(). Any UI-bound work posted from other

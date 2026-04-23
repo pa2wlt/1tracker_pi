@@ -2,11 +2,10 @@
 
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <functional>
 #include <map>
-#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <thread>
 
 #include "1tracker_pi/endpoint_sender.h"
@@ -70,8 +69,11 @@ private:
   LogFn logFn_;
   ResultFn resultFn_;
 
-  mutable std::mutex mutex_;
-  std::condition_variable condition_;
+  // See StateStore::mutex_ for why this is a shared_mutex instead of
+  // std::mutex. The condition_variable is gone too — it uses std::mutex
+  // internally and has the same crash footprint. The run loop now polls
+  // stopRequested_ every 100 ms, which is plenty for a 1 s tick cadence.
+  mutable std::shared_mutex mutex_;
   RuntimeConfig config_;
   std::map<std::string, Clock::time_point> nextSendTimes_;
   std::map<std::string, std::pair<double, double>> lastSuccessfulPositions_;

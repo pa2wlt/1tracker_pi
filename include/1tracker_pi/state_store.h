@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <mutex>
+#include <shared_mutex>
 
 #include "1tracker_pi/snapshot.h"
 
@@ -18,7 +18,12 @@ public:
   Snapshot getSnapshot() const;
 
 private:
-  mutable std::mutex mutex_;
+  // std::shared_mutex (SRWLOCK-backed on Windows) instead of std::mutex:
+  // on some MSVC/CRT combinations std::mutex's internal _Mutex_t pointer
+  // can be null after construction and every lock() crashes with an
+  // access-violation at addr=0x0. std::shared_mutex uses InitializeSRWLock
+  // directly and has no such indirection.
+  mutable std::shared_mutex mutex_;
   Snapshot snapshot_;
 };
 
