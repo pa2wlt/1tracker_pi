@@ -117,20 +117,13 @@ std::size_t Scheduler::tick() { return tickAt(Clock::now()); }
 bool Scheduler::isEndpointDue(
     const std::string& key, Clock::time_point now,
     const std::map<std::string, Clock::time_point>& nextSendTimesCopy,
-    const EndpointConfig& endpoint) const {
+    const EndpointConfig& /*endpoint*/) const {
+  // No log on the not-due branch: it ran every second per endpoint and
+  // buried the informative events (send start, succeeded/failed). The
+  // scheduleNextSend log already tells you `next_due_in_ms` after each
+  // successful send — that's enough for debugging timing.
   const auto nextSend = nextSendTimesCopy.find(key);
-  if (nextSend == nextSendTimesCopy.end() || now >= nextSend->second) {
-    return true;
-  }
-
-  if (logFn_) {
-    std::ostringstream stream;
-    stream << "1tracker_pi: endpoint '" << endpoint.name << "' skip not due yet"
-           << ", now_wall=" << formatWallClockNow()
-           << ", due_in_ms=" << durationMillis(nextSend->second - now);
-    logFn_(stream.str());
-  }
-  return false;
+  return nextSend == nextSendTimesCopy.end() || now >= nextSend->second;
 }
 
 std::optional<std::pair<double, double>>
