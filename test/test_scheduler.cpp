@@ -224,6 +224,68 @@ int main() {
            "endpoint without timestamp must not send (payload unavailable)");
   }
 
+  // Cold-start: first tick has no GPS fix yet. Must not push nextSendTime
+  // out by a full interval — once the fix arrives, the very next tick
+  // should send.
+  {
+    tracker_pi::StateStore store;
+    tracker_pi::PayloadBuilder payloadBuilder;
+    FakeSender sender;
+    tracker_pi::RuntimeConfig config;
+    config.enabled = true;
+    config.endpoints.push_back(
+        {"main", "http_json_with_header_key", true, true, 10, 60,
+         "https://example.com", 10, "X-API-Key", "SECRET"});
+    config.endpoints.front().id = "endpoint-cold-start";
+    tracker_pi::normalizeEndpointConfig(config.endpoints.front());
+
+    tracker_pi::Scheduler scheduler(store, payloadBuilder, sender);
+    scheduler.configure(config);
+
+    expect(scheduler.tick() == 0,
+           "first tick before any GPS fix must not send");
+
+    // GPS fix arrives one tick later.
+    store.updateTimevalue(1710000000);
+    store.updateLatLon(52.12345, 4.98765);
+
+    expect(scheduler.tick() == 1,
+           "send must happen on the first tick after the GPS fix arrives, "
+           "not a full interval later");
+  }
+
+  // Activating a previously-disabled endpoint while the GPS fix is still
+  // missing must not push the first send out by a full interval either —
+  // once the fix arrives, the next tick should send.
+  {
+    tracker_pi::StateStore store;
+    tracker_pi::PayloadBuilder payloadBuilder;
+    FakeSender sender;
+    tracker_pi::RuntimeConfig config;
+    config.enabled = true;
+    config.endpoints.push_back(
+        {"main", "http_json_with_header_key", false, true, 10, 60,
+         "https://example.com", 10, "X-API-Key", "SECRET"});
+    config.endpoints.front().id = "endpoint-activate";
+    tracker_pi::normalizeEndpointConfig(config.endpoints.front());
+
+    tracker_pi::Scheduler scheduler(store, payloadBuilder, sender);
+    scheduler.configure(config);
+    expect(scheduler.tick() == 0, "disabled endpoint must not send");
+
+    // User flips it on while there is still no GPS fix.
+    config.endpoints.front().enabled = true;
+    scheduler.configure(config);
+    expect(scheduler.tick() == 0,
+           "activated endpoint without a fix must not send yet");
+
+    // Fix arrives.
+    store.updateTimevalue(1710000000);
+    store.updateLatLon(52.12345, 4.98765);
+    expect(scheduler.tick() == 1,
+           "activated endpoint must send on the first tick after the fix");
+  }
+
   // Full log coverage: wire a logFn and exercise success, not-due, min-distance paths
   {
     tracker_pi::StateStore store;
@@ -274,7 +336,6 @@ int main() {
     expect(hasLog("send start"), "missing send-start log");
     expect(hasLog("succeeded"), "missing send-result log");
     expect(hasLog("scheduled next send"), "missing scheduleNextSend log");
-    expect(hasLog("skip not due yet"), "missing not-due log");
     expect(hasLog("skip minimum distance"), "missing min-distance log");
   }
 

@@ -233,14 +233,14 @@ void Scheduler::logSendResult(
   logFn_(stream.str());
 }
 
-bool Scheduler::sendEndpoint(const Snapshot& snapshot,
-                             const EndpointConfig& endpoint) const {
+Scheduler::SendOutcome Scheduler::sendEndpoint(
+    const Snapshot& snapshot, const EndpointConfig& endpoint) const {
   logSendStart(endpoint);
 
   const auto payload = buildPayloadForEndpoint(snapshot, endpoint);
   if (!payload.has_value()) {
     logMissingPayload(endpoint);
-    return false;
+    return SendOutcome::NoPayload;
   }
 
   const auto sendStartedAt = std::chrono::system_clock::now();
@@ -250,7 +250,7 @@ bool Scheduler::sendEndpoint(const Snapshot& snapshot,
     resultFn_(endpoint, result);
   }
   logSendResult(endpoint, result, sendStartedAt, sendFinishedAt);
-  return result.success;
+  return result.success ? SendOutcome::Success : SendOutcome::SendFailed;
 }
 
 void Scheduler::scheduleNextSend(const std::string& key, Clock::time_point now,
@@ -307,7 +307,15 @@ std::size_t Scheduler::tickAt(Clock::time_point now) {
       continue;
     }
 
-    if (sendEndpoint(snapshot, endpoint)) {
+    const auto outcome = sendEndpoint(snapshot, endpoint);
+    if (outcome == SendOutcome::NoPayload) {
+      // Payload isn't buildable yet — typically a cold start before the
+      // first GPS fix. Leave nextSendTimes_ as-is so the next 1 s tick
+      // retries immediately once the fix arrives, instead of pushing
+      // the first real send out by a full interval.
+      continue;
+    }
+    if (outcome == SendOutcome::Success) {
       if (snapshot.hasValidPosition()) {
         std::lock_guard<std::shared_mutex> lock(mutex_);
         lastSuccessfulPositions_[key] = {*snapshot.lat, *snapshot.lon};

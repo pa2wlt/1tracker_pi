@@ -56,7 +56,9 @@ private:
                      const EndpointSender::Result& result,
                      std::chrono::system_clock::time_point startedAt,
                      std::chrono::system_clock::time_point finishedAt) const;
-  bool sendEndpoint(const Snapshot& snapshot, const EndpointConfig& endpoint) const;
+  enum class SendOutcome { Success, NoPayload, SendFailed };
+  SendOutcome sendEndpoint(const Snapshot& snapshot,
+                           const EndpointConfig& endpoint) const;
   std::pair<RuntimeConfig, std::map<std::string, Clock::time_point>>
   tickContext() const;
   void scheduleNextSend(const std::string& key, Clock::time_point now,
