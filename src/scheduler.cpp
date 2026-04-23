@@ -331,10 +331,23 @@ void Scheduler::runLoop() {
   // Per-thread: translate Windows structured exceptions (access violations,
   // etc.) into C++ exceptions we can catch below. Otherwise an AV in any
   // downstream call (wxcurl, libcurl, DNS, jsoncpp) kills OCPN.
-  _set_se_translator([](unsigned int code, EXCEPTION_POINTERS*) {
-    char buffer[96];
+  _set_se_translator([](unsigned int code, EXCEPTION_POINTERS* info) {
+    char buffer[256];
+    void* faultIp = nullptr;
+    unsigned long long badAddr = 0;
+    const char* kind = "?";
+    if (info != nullptr && info->ExceptionRecord != nullptr) {
+      faultIp = info->ExceptionRecord->ExceptionAddress;
+      if (info->ExceptionRecord->NumberParameters >= 2) {
+        const auto op = info->ExceptionRecord->ExceptionInformation[0];
+        badAddr = static_cast<unsigned long long>(
+            info->ExceptionRecord->ExceptionInformation[1]);
+        kind = (op == 0 ? "read" : op == 1 ? "write" : op == 8 ? "exec" : "?");
+      }
+    }
     std::snprintf(buffer, sizeof(buffer),
-                  "Scheduler worker SEH 0x%08x", code);
+                  "Scheduler worker SEH 0x%08x at IP=%p kind=%s addr=0x%llx",
+                  code, faultIp, kind, badAddr);
     throw std::runtime_error(buffer);
   });
 #endif

@@ -24,10 +24,23 @@ namespace {
 std::filesystem::path g_dumpDir;
 std::once_flag g_crashHandlerOnce;
 
-void seTranslator(unsigned int code, EXCEPTION_POINTERS*) {
-  char buffer[96];
+void seTranslator(unsigned int code, EXCEPTION_POINTERS* info) {
+  char buffer[256];
+  void* faultIp = nullptr;
+  const char* kind = "?";
+  unsigned long long badAddr = 0;
+  if (info != nullptr && info->ExceptionRecord != nullptr) {
+    const auto* rec = info->ExceptionRecord;
+    faultIp = rec->ExceptionAddress;
+    if (rec->NumberParameters >= 2) {
+      const auto op = rec->ExceptionInformation[0];
+      badAddr = static_cast<unsigned long long>(rec->ExceptionInformation[1]);
+      kind = (op == 0 ? "read" : op == 1 ? "write" : op == 8 ? "exec" : "?");
+    }
+  }
   std::snprintf(buffer, sizeof(buffer),
-                "Windows structured exception 0x%08x", code);
+                "Windows structured exception 0x%08x at IP=%p kind=%s addr=0x%llx",
+                code, faultIp, kind, badAddr);
   throw std::runtime_error(buffer);
 }
 

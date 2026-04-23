@@ -197,23 +197,27 @@ void OneTrackerPi::createScheduler() {
 }
 
 void OneTrackerPi::configureAndStartScheduler() {
+  logMessage("1tracker_pi: configureAndStartScheduler step=loadConfiguration");
   loadConfiguration();
 
   if (!scheduler_) {
-    // createScheduler() failed earlier (its runGuarded caught the throw).
-    // Load the config anyway so it's visible in the dialog, but skip the
-    // scheduler so we don't null-deref.
     logMessage("1tracker_pi: scheduler unavailable; skipping configure/start");
     return;
   }
 
+  logMessage("1tracker_pi: configureAndStartScheduler step=scheduler.configure");
   scheduler_->configure(runtimeConfig_);
 
+  logMessage("1tracker_pi: configureAndStartScheduler step=check_enabled enabled=" +
+             std::string(runtimeConfig_.enabled ? "true" : "false"));
   if (runtimeConfig_.enabled) {
+    logMessage("1tracker_pi: configureAndStartScheduler step=scheduler.start");
     scheduler_->start();
+    logMessage("1tracker_pi: configureAndStartScheduler step=scheduler.start_done");
   } else {
     logMessage("1tracker_pi: plugin is disabled by configuration");
   }
+  logMessage("1tracker_pi: configureAndStartScheduler step=done");
 }
 
 void OneTrackerPi::initializeToolbarTool() {
@@ -511,7 +515,16 @@ void OneTrackerPi::updateEndpointStatus(
 
 void OneTrackerPi::SetPositionFix(PlugIn_Position_Fix& pfix) {
   tracker_pi::installSehTranslator();
-  tracker_pi::runGuarded("SetPositionFix", [this, &pfix] {
+  // Split fix-struct read from stateStore write. If pfix itself is a
+  // dangling reference, the AV fires on the read line; if it's the mutex
+  // in updateLatLon, it fires on the write line. Distinguishes the two.
+  tracker_pi::runGuarded("SetPositionFix:readFix", [&pfix] {
+    volatile double lat = pfix.Lat;
+    volatile double lon = pfix.Lon;
+    volatile std::int64_t fixTime = static_cast<std::int64_t>(pfix.FixTime);
+    (void)lat; (void)lon; (void)fixTime;
+  }, [this](const std::string& m) { logMessage(m); });
+  tracker_pi::runGuarded("SetPositionFix:updateState", [this, &pfix] {
     stateStore_.updateLatLon(pfix.Lat, pfix.Lon);
     stateStore_.updateTimevalue(static_cast<std::int64_t>(pfix.FixTime));
   }, [this](const std::string& m) { logMessage(m); });
@@ -519,7 +532,13 @@ void OneTrackerPi::SetPositionFix(PlugIn_Position_Fix& pfix) {
 
 void OneTrackerPi::SetPositionFixEx(PlugIn_Position_Fix_Ex& pfix) {
   tracker_pi::installSehTranslator();
-  tracker_pi::runGuarded("SetPositionFixEx", [this, &pfix] {
+  tracker_pi::runGuarded("SetPositionFixEx:readFix", [&pfix] {
+    volatile double lat = pfix.Lat;
+    volatile double lon = pfix.Lon;
+    volatile std::int64_t fixTime = static_cast<std::int64_t>(pfix.FixTime);
+    (void)lat; (void)lon; (void)fixTime;
+  }, [this](const std::string& m) { logMessage(m); });
+  tracker_pi::runGuarded("SetPositionFixEx:updateState", [this, &pfix] {
     stateStore_.updateLatLon(pfix.Lat, pfix.Lon);
     stateStore_.updateTimevalue(static_cast<std::int64_t>(pfix.FixTime));
   }, [this](const std::string& m) { logMessage(m); });
