@@ -25,13 +25,13 @@ troubleshooting, configuration-file location — see the
 
 Pick the build that matches your operating system:
 
-| Operating system | Download |
-|---|---|
-| **macOS** (Apple Silicon & Intel) | [1tracker-v0.1.0-beta1_darwin-universal.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-darwin-wx32-universal-10.15-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_darwin-wx32-10.15-arm64-x86_64.tar.gz) |
-| **Windows** | [1tracker-v0.1.0-beta1_windows.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-msvc-wx32-10-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_msvc-wx32-10-x86.tar.gz) |
-| **Linux** (Debian/Ubuntu 64-bit) | [1tracker-v0.1.0-beta1_debian12-x86_64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-debian-x86_64-12-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_debian-x86_64-12-x86_64.tar.gz) |
-| **Android** (64-bit, most phones) | [1tracker-v0.1.0-beta1_android-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-android-arm64-A64-16-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_android-arm64-16-arm64.tar.gz) |
-| **Android** (32-bit, older phones) | [1tracker-v0.1.0-beta1_android-armhf.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-android-armhf-A32-16-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_android-armhf-16-armhf.tar.gz) |
+| Operating system | Version | Download |
+|---|---|---|
+| **macOS** (Apple Silicon & Intel) | v0.1.0-beta1 | [1tracker-v0.1.0-beta1_darwin-universal.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-darwin-wx32-universal-10.15-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_darwin-wx32-10.15-arm64-x86_64.tar.gz) |
+| **Windows** | **v0.1.0-beta4** | [1tracker-v0.1.0-beta4_windows.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta4-msvc-wx32-10-tarball/versions/v0.1.0-beta4/1tracker-v0.1.0-beta4_msvc-wx32-10-x86.tar.gz) |
+| **Linux** (Debian/Ubuntu 64-bit) | v0.1.0-beta1 | [1tracker-v0.1.0-beta1_debian12-x86_64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-debian-x86_64-12-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_debian-x86_64-12-x86_64.tar.gz) |
+| **Android** (64-bit, most phones) | v0.1.0-beta1 | [1tracker-v0.1.0-beta1_android-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-android-arm64-A64-16-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_android-arm64-16-arm64.tar.gz) |
+| **Android** (32-bit, older phones) | v0.1.0-beta1 | [1tracker-v0.1.0-beta1_android-armhf.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta1-android-armhf-A32-16-tarball/versions/v0.1.0-beta1/1tracker-v0.1.0-beta1_android-armhf-16-armhf.tar.gz) |
 
 ---
 
