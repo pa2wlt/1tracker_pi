@@ -103,4 +103,4 @@ Or contact the developer directly.
 
 ---
 
-*Version 0.1.0-beta1 — April 2026*
+*Last updated: 2026-04-23 — Windows at v0.1.0-beta7, other platforms at v0.1.0-beta1*
