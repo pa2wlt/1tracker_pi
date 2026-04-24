@@ -551,3 +551,45 @@ For new endpoint types, the preferred rule is:
 
 That keeps future maintenance localized and prevents type-specific logic from
 spreading through the whole codebase.
+
+## Translations
+
+The plugin uses OpenCPN's standard `.po`/`.mo` localization pipeline
+(cmake/PluginLocalization.cmake). Workflow:
+
+1. **Marking strings.** User-facing strings in UI code (`src/tracker_dialog.cpp`,
+   `src/nfl_endpoint_page.cpp`, `src/http_json_endpoint_page.cpp`,
+   `src/endpoint_type_picker.cpp`) are wrapped with wxWidgets' `_()` macro.
+   Strings that live in the wx-free core library
+   (`src/endpoint_error_summary.cpp`) can't use `_()` — they are marked with
+   `TR_NOOP(...)` (see `include/1tracker_pi/translation_markers.h`) which
+   is a runtime no-op but is recognised by xgettext. The UI call site
+   passes the returned string through `wxGetTranslation(...)` at display
+   time so the localised text is looked up in the compiled `.mo` catalog.
+
+2. **Source file list.** Any file containing marked strings must appear in
+   `po/POTFILES.in`.
+
+3. **Regenerating the template.** Running
+   ```
+   cmake --build build --target 1tracker-pot-update
+   ```
+   (available when `BUILD_TYPE` is set in the CMake configure, i.e. the
+   packaging configuration) re-extracts strings into
+   `po/1tracker_pi.pot`. Committed alongside the source for convenience.
+   The `xgettext` invocation in `cmake/PluginLocalization.cmake` uses
+   `--keyword=_ --keyword=TR_NOOP`.
+
+4. **Per-language catalogs.** `.po` files come from the OpenCPN
+   [Crowdin project](https://opencpn-manuals.github.io/main/ocpn-dev-manual/0.1/dm-i18n.html),
+   where community translators pick up the `.pot` and produce per-locale
+   `.po` files that flow back via pull request from the OpenCPN i18n
+   maintainers. This plugin therefore does not carry hand-maintained
+   `.po` files — they are updated via that PR loop.
+
+5. **Build product.** Each `.po` compiles to a `.mo` at build time and
+   is installed under the appropriate OpenCPN locale path
+   (`Resources/<locale>.lproj/` on macOS, `share/locale/<locale>/LC_MESSAGES/`
+   on Linux). OpenCPN loads them at runtime in addition to its own core
+   catalogs; if both the core and the plugin translate the same source
+   string, the core translation wins.

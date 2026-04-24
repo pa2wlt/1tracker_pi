@@ -4,7 +4,9 @@
 
 #include <wx/arrstr.h>
 #include <wx/choicdlg.h>
+#include <wx/intl.h>
 #include <wx/string.h>
+#include <wx/translation.h>
 
 #include "1tracker_pi/endpoint_policy.h"
 #include "1tracker_pi/endpoint_type_behavior.h"
@@ -18,10 +20,10 @@ namespace {
 // domain layer, add a case here.
 wxString displayLabelForType(const std::string& type) {
   if (type == tracker_pi::kEndpointTypeNoForeignLand) {
-    return wxString("NoForeignLand");
+    return _("NoForeignLand");
   }
   if (type == tracker_pi::kEndpointTypeHttpJsonWithHeaderKey) {
-    return wxString("Generic HTTP JSON with header key");
+    return _("Generic HTTP JSON with header key");
   }
   return wxString::FromUTF8(type.c_str());
 }
@@ -49,10 +51,11 @@ std::optional<std::string> PickEndpointType(wxWindow* parent) {
     }
   }
 
-  wxSingleChoiceDialog dialog(parent,
-                              "Pick the tracker type. The type cannot be "
-                              "changed after the tracker is created.",
-                              "New tracker", labels);
+  wxSingleChoiceDialog dialog(
+      parent,
+      _("Pick the tracker type. The type cannot be changed after the tracker "
+        "is created."),
+      _("New tracker"), labels);
   dialog.SetSelection(preselect);
   if (dialog.ShowModal() != wxID_OK) {
     return std::nullopt;

@@ -133,7 +133,9 @@ int main() {
   expect(stFail.details == "HTTP 401 Unauthorized", "details must be raw error");
   expect(stFail.summary == "The server rejected the credentials.",
          "summary must come from summarizeEndpointError");
-  expect(stFail.metaText == "Last call: 2026-04-22 12:34", "meta must include timestamp");
+  expect(stFail.lastSentLocalTime == "2026-04-22 12:34",
+         "lastSentLocalTime must pass through the timestamp "
+         "(UI layer adds the \"Last call: \" prefix so it can be translated)");
 
   // Endpoint with error but no timestamp → visible without meta
   EndpointUiState failingNoTs;
@@ -141,7 +143,8 @@ int main() {
   statuses[endpointStateKey(json)] = failingNoTs;
   const auto stFailNoTs = computeEndpointErrorUiState(&json, statuses);
   expect(stFailNoTs.visible, "failing without timestamp still visible");
-  expect(stFailNoTs.metaText.empty(), "meta empty when no timestamp recorded");
+  expect(stFailNoTs.lastSentLocalTime.empty(),
+         "lastSentLocalTime empty when no timestamp recorded");
 
   // NFL missing-key phrase gets NFL-specific translation
   statuses.clear();

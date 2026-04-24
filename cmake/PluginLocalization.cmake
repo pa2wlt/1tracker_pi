@@ -21,7 +21,11 @@ if (GETTEXT_XGETTEXT_EXECUTABLE)
     COMMAND
       ${GETTEXT_XGETTEXT_EXECUTABLE} --force-po --package-name=${PACKAGE_NAME}
       --package-version="${PROJECT_VERSION}" --output=po/${PACKAGE_NAME}.pot
-      --keyword=_ --width=80
+      # TR_NOOP marks user-facing literals that live in the wx-free core
+      # library (see include/1tracker_pi/translation_markers.h and
+      # src/endpoint_error_summary.cpp). Paired with wxGetTranslation at
+      # the UI call site.
+      --keyword=_ --keyword=TR_NOOP --width=80
       --files-from=${CMAKE_CURRENT_SOURCE_DIR}/po/POTFILES.in
     DEPENDS po/POTFILES.in po/${PACKAGE_NAME}.pot
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

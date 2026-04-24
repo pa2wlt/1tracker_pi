@@ -3,12 +3,14 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/colour.h>
+#include <wx/intl.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/translation.h>
 
 #include "1tracker_pi/endpoint_policy.h"
 
@@ -39,7 +41,7 @@ void HttpJsonEndpointPage::buildForm(wxBoxSizer* column) {
 
   // Send interval + min-distance gating row:
   //   [spin] minutes, if moved at least [spin] meters
-  addLabel("Send interval");
+  addLabel(_("Send interval"));
   auto* intervalRow = new wxBoxSizer(wxHORIZONTAL);
   intervalSpin_ = new wxSpinCtrl(this, wxID_ANY);
   intervalSpin_->SetRange(1, 10080);
@@ -48,7 +50,7 @@ void HttpJsonEndpointPage::buildForm(wxBoxSizer* column) {
   intervalSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
   intervalRow->Add(intervalSpin_, 0, wxALIGN_CENTER_VERTICAL);
   auto* intervalUnits =
-      new wxStaticText(this, wxID_ANY, "minutes, if moved at least");
+      new wxStaticText(this, wxID_ANY, _("minutes, if moved at least"));
   intervalRow->Add(intervalUnits, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
   intervalRow->AddSpacer(8);
   minDistanceSpin_ = new wxSpinCtrl(this, wxID_ANY);
@@ -57,25 +59,25 @@ void HttpJsonEndpointPage::buildForm(wxBoxSizer* column) {
   minDistanceSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
   minDistanceSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
   intervalRow->Add(minDistanceSpin_, 0, wxALIGN_CENTER_VERTICAL);
-  auto* distanceUnits = new wxStaticText(this, wxID_ANY, "meters");
+  auto* distanceUnits = new wxStaticText(this, wxID_ANY, _("meters"));
   intervalRow->Add(distanceUnits, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
   form->Add(intervalRow, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
   // Include wind
-  addLabel("Include wind");
+  addLabel(_("Include wind"));
   includeWindCheck_ = new wxCheckBox(this, wxID_ANY, "", wxDefaultPosition,
                                      wxDefaultSize, wxCHK_2STATE | wxWANTS_CHARS);
   form->Add(includeWindCheck_, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
   // URL
-  addLabel("URL");
+  addLabel(_("URL"));
   urlCtrl_ = new wxTextCtrl(this, wxID_ANY);
   urlCtrl_->SetMinSize(wxSize(kDetailFieldWidth, -1));
   urlCtrl_->SetMaxSize(wxSize(kDetailFieldWidth, -1));
   form->Add(urlCtrl_, 1, wxEXPAND);
 
   // Timeout
-  addLabel("Timeout");
+  addLabel(_("Timeout"));
   auto* timeoutRow = new wxBoxSizer(wxHORIZONTAL);
   timeoutSpin_ = new wxSpinCtrl(this, wxID_ANY);
   timeoutSpin_->SetRange(1, 600);
@@ -83,18 +85,18 @@ void HttpJsonEndpointPage::buildForm(wxBoxSizer* column) {
   timeoutSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
   timeoutSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
   timeoutRow->Add(timeoutSpin_, 0, wxALIGN_CENTER_VERTICAL);
-  auto* timeoutUnits = new wxStaticText(this, wxID_ANY, "seconds");
+  auto* timeoutUnits = new wxStaticText(this, wxID_ANY, _("seconds"));
   timeoutRow->Add(timeoutUnits, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
   form->Add(timeoutRow, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
   // Header name + Value — two inputs side-by-side under one label cell.
-  addLabel("Header name");
+  addLabel(_("Header name"));
   auto* headerRow = new wxBoxSizer(wxHORIZONTAL);
   headerNameCtrl_ = new wxTextCtrl(this, wxID_ANY);
   headerNameCtrl_->SetMinSize(wxSize(kHeaderNameFieldWidth, -1));
   headerNameCtrl_->SetMaxSize(wxSize(kHeaderNameFieldWidth, -1));
   headerRow->Add(headerNameCtrl_, 0, wxALIGN_CENTER_VERTICAL);
-  auto* headerValueLabel = new wxStaticText(this, wxID_ANY, "Value");
+  auto* headerValueLabel = new wxStaticText(this, wxID_ANY, _("Value"));
   headerValueLabel->SetMinSize(wxSize(kHeaderValueLabelWidth, -1));
   headerRow->Add(headerValueLabel, 0,
                  wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 8);
@@ -118,7 +120,7 @@ void HttpJsonEndpointPage::buildErrorPanel(wxBoxSizer* column) {
   errorMeta_->SetForegroundColour(wxColour(96, 96, 96));
   errorSizer->Add(errorMeta_, 0, wxBOTTOM, 4);
 
-  errorToggle_ = new wxButton(errorPanel_, wxID_ANY, "Show technical details");
+  errorToggle_ = new wxButton(errorPanel_, wxID_ANY, _("Show technical details"));
   errorSizer->Add(errorToggle_, 0, wxBOTTOM, 4);
 
   errorDetails_ = new wxStaticText(errorPanel_, wxID_ANY, "");
@@ -213,10 +215,14 @@ void HttpJsonEndpointPage::setErrorState(
     errorPanel_->Hide();
     return;
   }
-  errorSummary_->SetLabel(wxString::FromUTF8(state.summary.c_str()));
+  // state.summary is a TR_NOOP literal from core; translate at display time.
+  errorSummary_->SetLabel(wxGetTranslation(
+      wxString::FromUTF8(state.summary.c_str())));
   errorSummary_->Wrap(kErrorPanelWrapWidth);
-  if (!state.metaText.empty()) {
-    errorMeta_->SetLabel(wxString::FromUTF8(state.metaText.c_str()));
+  if (!state.lastSentLocalTime.empty()) {
+    errorMeta_->SetLabel(wxString::Format(
+        _("Last call: %s"),
+        wxString::FromUTF8(state.lastSentLocalTime.c_str())));
     errorMeta_->Show();
   } else {
     errorMeta_->SetLabel("");
@@ -231,7 +237,7 @@ void HttpJsonEndpointPage::setErrorState(
   if (!state.details.empty()) {
     errorDetails_->SetLabel(wxString::FromUTF8(state.details.c_str()));
     errorDetails_->Hide();
-    errorToggle_->SetLabel("Show technical details");
+    errorToggle_->SetLabel(_("Show technical details"));
     errorToggle_->Show();
   } else {
     errorDetails_->SetLabel("");
@@ -254,8 +260,8 @@ void HttpJsonEndpointPage::onToggleErrorDetails(wxCommandEvent&) {
     // empty layout.
     errorDetails_->Wrap(kErrorPanelWrapWidth);
   }
-  errorToggle_->SetLabel(errorDetailsExpanded_ ? "Hide technical details"
-                                               : "Show technical details");
+  errorToggle_->SetLabel(errorDetailsExpanded_ ? _("Hide technical details")
+                                               : _("Show technical details"));
   // Invalidate cached best-sizes up the chain — otherwise
   // ComputeFittingWindowSize keeps reporting the pre-expanded dimensions
   // and neither the error panel's container nor the dialog frame grows

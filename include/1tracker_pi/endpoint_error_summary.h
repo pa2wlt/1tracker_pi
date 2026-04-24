@@ -13,9 +13,14 @@ std::string summarizeEndpointError(const EndpointConfig& endpoint,
 
 struct EndpointErrorUiState {
   bool visible = false;
-  std::string summary;      // user-facing translation of the raw error
-  std::string details;      // raw error text as reported by the sender
-  std::string metaText;     // e.g. "Last call: 2026-04-22 18:42", empty if no timestamp
+  std::string summary;            // user-facing summary of the raw error
+                                  // (marked TR_NOOP in the source; UI
+                                  // passes through wxGetTranslation)
+  std::string details;            // raw error text as reported by the
+                                  // sender — not translated
+  std::string lastSentLocalTime;  // timestamp only, empty if no recorded
+                                  // send yet. UI composes the localised
+                                  // "Last call: <ts>" label.
 };
 
 // Pure: decides what the error panel should show for a given endpoint.

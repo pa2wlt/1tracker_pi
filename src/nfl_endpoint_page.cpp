@@ -3,12 +3,14 @@
 #include <wx/button.h>
 #include <wx/colour.h>
 #include <wx/hyperlink.h>
+#include <wx/intl.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
+#include <wx/translation.h>
 
 #include "1tracker_pi/endpoint_policy.h"
 #include "1tracker_pi/nfl_settings.h"
@@ -39,7 +41,7 @@ void NflEndpointPage::buildForm(wxBoxSizer* column) {
   };
 
   // Send interval — NFL has no min-distance column, just "N minutes".
-  addLabel("Send interval");
+  addLabel(_("Send interval"));
   auto* intervalRow = new wxBoxSizer(wxHORIZONTAL);
   intervalSpin_ = new wxSpinCtrl(this, wxID_ANY);
   intervalSpin_->SetRange(tracker_pi::kNflMinSendIntervalMinutes, 10080);
@@ -47,13 +49,13 @@ void NflEndpointPage::buildForm(wxBoxSizer* column) {
   intervalSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
   intervalSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
   intervalRow->Add(intervalSpin_, 0, wxALIGN_CENTER_VERTICAL);
-  auto* intervalUnits = new wxStaticText(this, wxID_ANY, "minutes");
+  auto* intervalUnits = new wxStaticText(this, wxID_ANY, _("minutes"));
   intervalRow->Add(intervalUnits, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
   form->Add(intervalRow, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
   // NFL API key (NFL themselves call this a "boat key" in their UI; we
   // label it "API key" here to match the Type-specific field's role).
-  addLabel("My NFL API key");
+  addLabel(_("My NFL API key"));
   boatKeyCtrl_ = new wxTextCtrl(this, wxID_ANY);
   boatKeyCtrl_->SetMinSize(wxSize(kDetailFieldWidth, -1));
   boatKeyCtrl_->SetMaxSize(wxSize(kDetailFieldWidth, -1));
@@ -62,19 +64,21 @@ void NflEndpointPage::buildForm(wxBoxSizer* column) {
   // Help line under the boat key: "To get your API key, open <link> in NFL."
   form->AddSpacer(0);
   auto* helpRow = new wxBoxSizer(wxHORIZONTAL);
-  auto* helpLead = new wxStaticText(this, wxID_ANY, "To get your API key, open");
+  auto* helpLead =
+      new wxStaticText(this, wxID_ANY, _("To get your API key, open"));
   helpLead->SetForegroundColour(wxColour(72, 72, 72));
   // 4px left padding matches the Type static text above so static and
   // textbox-content rows share the same visual left edge.
   helpRow->Add(helpLead, 0,
                wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-  auto* link = new wxHyperlinkCtrl(this, wxID_ANY, "Boat Tracking Settings",
-                                   tracker_pi::nfl::boatTrackingSettingsUrl());
+  auto* link =
+      new wxHyperlinkCtrl(this, wxID_ANY, _("Boat Tracking Settings"),
+                          tracker_pi::nfl::boatTrackingSettingsUrl());
   link->SetNormalColour(wxColour(20, 78, 140));
   link->SetHoverColour(wxColour(14, 58, 106));
   link->SetVisitedColour(wxColour(84, 62, 132));
   helpRow->Add(link, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-  auto* helpTail = new wxStaticText(this, wxID_ANY, "in NFL.");
+  auto* helpTail = new wxStaticText(this, wxID_ANY, _("in NFL."));
   helpTail->SetForegroundColour(wxColour(72, 72, 72));
   helpRow->Add(helpTail, 0, wxALIGN_CENTER_VERTICAL);
   form->Add(helpRow, 0, wxTOP | wxEXPAND, 2);
@@ -95,7 +99,7 @@ void NflEndpointPage::buildErrorPanel(wxBoxSizer* column) {
   errorMeta_->SetForegroundColour(wxColour(96, 96, 96));
   errorSizer->Add(errorMeta_, 0, wxBOTTOM, 4);
 
-  errorToggle_ = new wxButton(errorPanel_, wxID_ANY, "Show technical details");
+  errorToggle_ = new wxButton(errorPanel_, wxID_ANY, _("Show technical details"));
   errorSizer->Add(errorToggle_, 0, wxBOTTOM, 4);
 
   errorDetails_ = new wxStaticText(errorPanel_, wxID_ANY, "");
@@ -156,10 +160,14 @@ void NflEndpointPage::setErrorState(
     errorPanel_->Hide();
     return;
   }
-  errorSummary_->SetLabel(wxString::FromUTF8(state.summary.c_str()));
+  // state.summary is a TR_NOOP literal from core; translate at display time.
+  errorSummary_->SetLabel(wxGetTranslation(
+      wxString::FromUTF8(state.summary.c_str())));
   errorSummary_->Wrap(kErrorPanelWrapWidth);
-  if (!state.metaText.empty()) {
-    errorMeta_->SetLabel(wxString::FromUTF8(state.metaText.c_str()));
+  if (!state.lastSentLocalTime.empty()) {
+    errorMeta_->SetLabel(wxString::Format(
+        _("Last call: %s"),
+        wxString::FromUTF8(state.lastSentLocalTime.c_str())));
     errorMeta_->Show();
   } else {
     errorMeta_->SetLabel("");
@@ -168,7 +176,7 @@ void NflEndpointPage::setErrorState(
   if (!state.details.empty()) {
     errorDetails_->SetLabel(wxString::FromUTF8(state.details.c_str()));
     errorDetails_->Hide();
-    errorToggle_->SetLabel("Show technical details");
+    errorToggle_->SetLabel(_("Show technical details"));
     errorToggle_->Show();
   } else {
     errorDetails_->SetLabel("");
@@ -188,8 +196,8 @@ void NflEndpointPage::onToggleErrorDetails(wxCommandEvent&) {
   if (errorDetailsExpanded_) {
     errorDetails_->Wrap(kErrorPanelWrapWidth);
   }
-  errorToggle_->SetLabel(errorDetailsExpanded_ ? "Hide technical details"
-                                               : "Show technical details");
+  errorToggle_->SetLabel(errorDetailsExpanded_ ? _("Hide technical details")
+                                               : _("Show technical details"));
   errorPanel_->InvalidateBestSize();
   errorPanel_->Layout();
   InvalidateBestSize();

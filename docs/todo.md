@@ -1,7 +1,7 @@
 To do:
 + Gather feedback from first-round beta testers on v0.1.0-beta1.
 + Verify Windows and Linux runtime config path handling. `GetpPrivateApplicationDataLocation()` has only been exercised on macOS so far.
-+ Translations / .po files? Ask Rick how to deal with that.
++ Submit `po/1tracker_pi.pot` to the OpenCPN i18n maintainers so it gets on Crowdin; accept per-locale `.po` files when they return via PR.
 + Prepare and submit the OpenCPN plugin catalog PR once beta feedback is in.
 + Create annotated `v0.1.0` tag once we're ready for production (CI will route
   untagged-beta tags to the beta repo, plain tags to the prod repo automatically).

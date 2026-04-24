@@ -18,6 +18,7 @@
 #include <wx/filename.h>
 #include <wx/grid.h>
 #include <wx/hyperlink.h>
+#include <wx/intl.h>
 #include <wx/msgdlg.h>
 #include <wx/panel.h>
 #include <wx/simplebook.h>
@@ -27,6 +28,7 @@
 #include <wx/statline.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/translation.h>
 #include <wx/window.h>
 
 #include "1tracker_pi/endpoint_error_summary.h"
@@ -237,8 +239,8 @@ public:
       TrackerDialogEntryMode entryMode, std::function<void()> onClose)
       : wxDialog(parent, wxID_ANY,
                  entryMode == TrackerDialogEntryMode::Preferences
-                     ? "1tracker Preferences"
-                     : "Tracking",
+                     ? _("1tracker Preferences")
+                     : _("Tracking"),
                  wxDefaultPosition,
                  wxSize(kPreferencesDialogWidth, kPreferencesDialogHeight),
                  dialogStyleFor(entryMode)),
@@ -339,10 +341,10 @@ private:
     endpointGrid_->CreateGrid(0, 7);
     endpointGrid_->HideRowLabels();
     endpointGrid_->SetColLabelValue(0, "");
-    endpointGrid_->SetColLabelValue(1, "Name");
-    endpointGrid_->SetColLabelValue(2, "Send interval");
-    endpointGrid_->SetColLabelValue(3, "Last successful send");
-    endpointGrid_->SetColLabelValue(4, "Status");
+    endpointGrid_->SetColLabelValue(1, _("Name"));
+    endpointGrid_->SetColLabelValue(2, _("Send interval"));
+    endpointGrid_->SetColLabelValue(3, _("Last successful send"));
+    endpointGrid_->SetColLabelValue(4, _("Status"));
     endpointGrid_->SetColLabelValue(5, "");
     endpointGrid_->SetColLabelValue(6, "");
     applyGridColumnSizing();
@@ -366,8 +368,8 @@ private:
     listSizer->Add(endpointGrid_, 0, wxEXPAND | wxBOTTOM, 8);
 
     listButtonRow_ = new wxBoxSizer(wxHORIZONTAL);
-    addButton_ = new wxButton(listPanel_, wxID_ADD, "Add tracker");
-    closeButton_ = new wxButton(listPanel_, wxID_CANCEL, "Close");
+    addButton_ = new wxButton(listPanel_, wxID_ADD, _("Add tracker"));
+    closeButton_ = new wxButton(listPanel_, wxID_CANCEL, _("Close"));
     listButtonRow_->Add(addButton_, 0);
     listButtonRow_->AddStretchSpacer(1);
     listButtonRow_->Add(closeButton_, 0);
@@ -391,7 +393,7 @@ private:
   }
 
   void addDetailLabel(wxFlexGridSizer* form, wxStaticText*& label,
-                      const char* text) {
+                      const wxString& text) {
     label = new wxStaticText(detailPanel_, wxID_ANY, text);
     setFixedLabelWidth(label);
     form->Add(label, 0, wxALIGN_CENTER_VERTICAL);
@@ -435,11 +437,11 @@ private:
   void buildSharedIdentityFields(wxBoxSizer* column) {
     auto* form = createDetailForm();
 
-    addDetailLabel(form, endpointNameLabel_, "Name");
+    addDetailLabel(form, endpointNameLabel_, _("Name"));
     endpointNameCtrl_ = createSizedTextCtrl(detailPanel_);
     form->Add(endpointNameCtrl_, 1, wxEXPAND);
 
-    addDetailLabel(form, endpointTypeLabel_, "Type");
+    addDetailLabel(form, endpointTypeLabel_, _("Type"));
     endpointTypeText_ = new wxStaticText(detailPanel_, wxID_ANY, "");
     endpointTypeText_->SetMinSize(wxSize(kDetailFieldWidth, -1));
     // 4px left padding so the Type text aligns visually with the Name
@@ -526,14 +528,14 @@ private:
   void buildInfoBody(wxBoxSizer* infoSizer) {
     auto* infoBody = new wxStaticText(
         infoPanel_, wxID_ANY,
-        "The 1tracker plugin automatically sends your location to a website "
-        "via API calls. You can configure a custom website, or a standard "
-        "noforeignland endpoint.");
+        _("The 1tracker plugin automatically sends your location to a website "
+          "via API calls. You can configure a custom website, or a standard "
+          "noforeignland endpoint."));
     infoBody->Wrap(kPreferencesDialogWidth - 80);
     infoSizer->Add(infoBody, 0, wxBOTTOM, 8);
 
     auto* manualLabel =
-        new wxStaticText(infoPanel_, wxID_ANY, "Online manual: ");
+        new wxStaticText(infoPanel_, wxID_ANY, _("Online manual: "));
     infoSizer->Add(manualLabel, 0);
     infoManualLink_ = new wxHyperlinkCtrl(
         infoPanel_, wxID_ANY,
@@ -545,7 +547,7 @@ private:
     infoSizer->Add(infoManualLink_, 0, wxBOTTOM, 4);
 
     auto* issuesLabel =
-        new wxStaticText(infoPanel_, wxID_ANY, "Report issues or requests: ");
+        new wxStaticText(infoPanel_, wxID_ANY, _("Report issues or requests: "));
     infoSizer->Add(issuesLabel, 0);
     infoIssuesLink_ = new wxHyperlinkCtrl(
         infoPanel_, wxID_ANY, "github.com/pa2wlt/1tracker_pi/issues",
@@ -559,7 +561,7 @@ private:
   void buildInfoConfigPath(wxBoxSizer* infoSizer) {
     auto* infoConfigText = new wxStaticText(
         infoPanel_, wxID_ANY,
-        "Settings are stored in a configuration file here on your local machine: ");
+        _("Settings are stored in a configuration file here on your local machine: "));
     infoConfigText->Wrap(kPreferencesDialogWidth - 80);
     infoSizer->Add(infoConfigText, 0, wxBOTTOM, 4);
     const wxString configPathString =
@@ -575,7 +577,7 @@ private:
   void buildInfoButtons(wxBoxSizer* infoSizer) {
     infoSizer->AddStretchSpacer(1);
     infoButtonRow_ = new wxBoxSizer(wxHORIZONTAL);
-    infoCloseButton_ = new wxButton(infoPanel_, wxID_ANY, "Close");
+    infoCloseButton_ = new wxButton(infoPanel_, wxID_ANY, _("Close"));
     infoButtonRow_->AddStretchSpacer(1);
     infoButtonRow_->Add(infoCloseButton_, 0);
     infoSizer->Add(infoButtonRow_, 0, wxEXPAND | wxTOP | wxBOTTOM, 8);
@@ -594,9 +596,9 @@ private:
 
   void buildButtonRow(wxBoxSizer* root) {
     buttonRow_ = new wxBoxSizer(wxHORIZONTAL);
-    detailHelpButton_ = new wxButton(this, wxID_ANY, "Help");
-    detailCancelButton_ = new wxButton(this, wxID_ANY, "Cancel");
-    detailOkButton_ = new wxButton(this, wxID_ANY, "OK");
+    detailHelpButton_ = new wxButton(this, wxID_ANY, _("Help"));
+    detailCancelButton_ = new wxButton(this, wxID_ANY, _("Cancel"));
+    detailOkButton_ = new wxButton(this, wxID_ANY, _("OK"));
     buttonRow_->Add(detailHelpButton_, 0);
     buttonRow_->AddStretchSpacer(1);
     buttonRow_->Add(detailCancelButton_, 0, wxLEFT, 8);
@@ -911,9 +913,11 @@ private:
 
   wxString endpointRowInterval(
       const tracker_pi::EndpointConfig& endpoint) const {
+    // Plural form is crude (no wxPLURAL); if a language needs separate
+    // grammar for 1 vs N, the two keys can be translated independently.
     return wxString::Format("%d %s", endpoint.sendIntervalMinutes,
-                            endpoint.sendIntervalMinutes == 1 ? "minute"
-                                                              : "minutes");
+                            endpoint.sendIntervalMinutes == 1 ? _("minute")
+                                                              : _("minutes"));
   }
 
   void setEndpointRowValues(int index, const tracker_pi::EndpointConfig& endpoint,
@@ -970,13 +974,13 @@ private:
   wxString statusLabel(tracker_pi::EndpointUiStatus status) const {
     switch (status) {
       case tracker_pi::EndpointUiStatus::Success:
-        return "Active";
+        return _("Active");
       case tracker_pi::EndpointUiStatus::Failure:
-        return "Issue";
+        return _("Issue");
       case tracker_pi::EndpointUiStatus::Disabled:
       case tracker_pi::EndpointUiStatus::NoStats:
       default:
-        return "Inactive";
+        return _("Inactive");
     }
   }
 
@@ -1009,12 +1013,14 @@ private:
   // User-facing label for a tracker type. Mirrors the picker's labels so
   // the static Type field in the editor shows the same friendly name the
   // user picked at creation time.
-  static std::string displayLabelForType(const std::string& type) {
-    if (type == tracker_pi::kEndpointTypeNoForeignLand) return "NoForeignLand";
-    if (type == tracker_pi::kEndpointTypeHttpJsonWithHeaderKey) {
-      return "Generic HTTP JSON with header key";
+  static wxString displayLabelForType(const std::string& type) {
+    if (type == tracker_pi::kEndpointTypeNoForeignLand) {
+      return _("NoForeignLand");
     }
-    return type;
+    if (type == tracker_pi::kEndpointTypeHttpJsonWithHeaderKey) {
+      return _("Generic HTTP JSON with header key");
+    }
+    return wxString::FromUTF8(type.c_str());
   }
 
   void setWindowShown(wxWindow* window, bool shown) {
@@ -1027,7 +1033,7 @@ private:
     endpointNameCtrl_->SetValue(wxString::FromUTF8(endpoint.name.c_str()));
     if (endpointTypeText_ != nullptr) {
       endpointTypeText_->SetLabel(
-          wxString::FromUTF8(displayLabelForType(endpoint.type).c_str()));
+          displayLabelForType(endpoint.type));
     }
     if (detailHero_ != nullptr) {
       detailHero_->SetBitmap(heroBitmapForType(endpoint.type));

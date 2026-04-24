@@ -1,0 +1,11 @@
+# Source files scanned by xgettext for translatable strings.
+#
+# Add new UI files here when they introduce user-facing _() / wxGetTranslation
+# call sites. Core files use the TR_NOOP marker (see
+# include/1tracker_pi/translation_markers.h); xgettext is told about that
+# keyword in cmake/PluginLocalization.cmake.
+src/endpoint_error_summary.cpp
+src/endpoint_type_picker.cpp
+src/http_json_endpoint_page.cpp
+src/nfl_endpoint_page.cpp
+src/tracker_dialog.cpp
