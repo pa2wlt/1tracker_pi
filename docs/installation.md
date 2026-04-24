@@ -31,8 +31,10 @@ Pick the build that matches your operating system:
 | **Windows** | v0.1.0-beta9 | [1tracker-v0.1.0-beta9_windows.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta9-msvc-wx32-10-tarball/versions/v0.1.0-beta9/1tracker-v0.1.0-beta9_msvc-wx32-10-x86.tar.gz) |
 | **Linux** (Debian/Ubuntu 12, x86_64) | v0.1.0-beta9 | [1tracker-v0.1.0-beta9_debian12-x86_64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta9-debian-x86_64-12-tarball/versions/v0.1.0-beta9/1tracker-v0.1.0-beta9_debian-x86_64-12-x86_64.tar.gz) |
 | **Raspberry Pi** (64-bit, Pi 4/5 on Raspberry Pi OS 12) | v0.1.0-beta9 | [1tracker-v0.1.0-beta9_debian12-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta9-debian-arm64-A64-12-tarball/versions/v0.1.0-beta9/1tracker-v0.1.0-beta9_debian-arm64-12-arm64.tar.gz) |
-| **Android** (64-bit, most phones) | v0.1.0-beta9 | [1tracker-v0.1.0-beta9_android-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta9-android-arm64-A64-16-tarball/versions/v0.1.0-beta9/1tracker-v0.1.0-beta9_android-arm64-16-arm64.tar.gz) |
-| **Android** (32-bit, older phones) | v0.1.0-beta9 | [1tracker-v0.1.0-beta9_android-armhf.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.1.0-beta9-android-armhf-A32-16-tarball/versions/v0.1.0-beta9/1tracker-v0.1.0-beta9_android-armhf-16-armhf.tar.gz) |
+
+> **On Android?** The install procedure is different — Android OpenCPN has no
+> "Install from file" button, so the tarball flow below does not apply.
+> Jump to [Android installation](#android-installation).
 
 <details>
 <summary><b>Other builds</b> — older/newer Linux, Flatpak, Intel-only macOS</summary>
@@ -81,6 +83,47 @@ line — it will say e.g. `org.freedesktop.Platform/x86_64/24.08`.
 3. Click **OK** and restart OpenCPN
 
 After restarting, a new **1tracker** icon appears in the toolbar.
+
+---
+
+## Android installation
+
+Android OpenCPN does not expose an "Install plugin from file" button — plugins
+can only be installed through the in-app Plugin Catalog. Steps 1–3 above
+therefore do not apply on Android. Instead, point OpenCPN's catalog at
+1tracker's beta channel and install from the in-app list.
+
+1. Open **OpenCPN** on the Android device.
+2. Go to **Options** → **Plugins** tab.
+3. Tap **Update Plugin Catalog** (or **Plugin Sources** in newer builds) and
+   pick the **Custom** channel.
+4. Paste this URL:
+
+   ```
+   https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/ocpn-plugins/versions/latest/ocpn-plugins.xml
+   ```
+
+5. Tap **Update** / **Refresh**. OpenCPN fetches the catalog and **1tracker**
+   appears in the available-plugins list.
+6. Tap **1tracker** → **Install**. OpenCPN downloads the correct
+   `android-arm64` or `android-armhf` build automatically based on the device.
+7. Tap **Enable**, then restart OpenCPN.
+
+After the restart, the **1tracker** toolbar icon appears. Continue with
+[Step 4 — Configure for NoForeignLand](#step-4--configure-for-noforeignland).
+
+### Android troubleshooting
+
+- **"Invalid XML" / "Could not parse catalog"** — nearly always a typo in the
+  URL. Paste it, do not type.
+- **"No plugins found"** after refresh — OpenCPN cached a failed fetch.
+  Force-close the app and reopen, then retry the catalog update.
+- **Plugin stays "Installed" but does not activate** — tap **Enable**, then
+  restart OpenCPN a second time. Android OpenCPN sometimes needs two restarts
+  before the toolbar registers the new icon.
+- **Toolbar icon still missing** — check **Options → About**: the plugin API
+  version must be **1.18 or newer**. Older Android OpenCPN builds cannot load
+  1tracker.
 
 ---
 
