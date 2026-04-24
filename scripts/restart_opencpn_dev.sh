@@ -42,4 +42,13 @@ while pgrep -x OpenCPN >/dev/null 2>&1; do
   sleep 1
 done
 
+# Workaround: OpenCPN on macOS drifts ToolbarY downward ~24px every
+# save/restore cycle (wxFrame::GetPosition vs SetPosition inconsistency
+# around the macOS menu bar). Pin it to a sensible top-of-window value
+# before each launch. Remove once OpenCPN upstream fixes the drift.
+INI="$HOME/Library/Preferences/opencpn/opencpn.ini"
+if [ -f "$INI" ]; then
+  /usr/bin/sed -i '' 's/^ToolbarY=.*/ToolbarY=64/' "$INI"
+fi
+
 open -a OpenCPN

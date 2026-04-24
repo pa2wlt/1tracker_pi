@@ -10,6 +10,24 @@
 
 namespace tracker_pi {
 
+namespace {
+
+// Strip ASCII whitespace (space, tab, CR, LF) from both ends. Leading/
+// trailing whitespace in URL/header-name/header-value values was causing
+// libcurl to reject the request with "URL using bad/illegal format or
+// missing URL" — an easy mistake when pasting into the editor, hence we
+// canonicalise at normalize time so every code path (load, save, apply
+// defaults) benefits.
+std::string trimmed(const std::string& value) {
+  constexpr const char* kWs = " \t\r\n";
+  const auto first = value.find_first_not_of(kWs);
+  if (first == std::string::npos) return {};
+  const auto last = value.find_last_not_of(kWs);
+  return value.substr(first, last - first + 1);
+}
+
+}  // namespace
+
 bool isNoForeignLandType(const std::string& type) {
   return type == kEndpointTypeNoForeignLand;
 }
@@ -53,6 +71,9 @@ int effectiveMinDistanceMeters(const EndpointConfig& endpoint) {
 }
 
 void normalizeEndpointConfig(EndpointConfig& endpoint) {
+  endpoint.url = trimmed(endpoint.url);
+  endpoint.headerName = trimmed(endpoint.headerName);
+  endpoint.headerValue = trimmed(endpoint.headerValue);
   endpoint.sendIntervalMinutes = effectiveSendIntervalMinutes(endpoint);
   endpoint.minDistanceMeters = effectiveMinDistanceMeters(endpoint);
   getEndpointTypeBehavior(endpoint).applyDefaults(endpoint);

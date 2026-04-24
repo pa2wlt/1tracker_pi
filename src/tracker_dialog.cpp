@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <wx/version.h>
 #if wxCHECK_VERSION(3,1,6)
@@ -13,13 +14,13 @@
 #endif
 #include <wx/button.h>
 #include <wx/checkbox.h>
-#include <wx/combobox.h>
 #include <wx/dialog.h>
 #include <wx/filename.h>
 #include <wx/grid.h>
 #include <wx/hyperlink.h>
 #include <wx/msgdlg.h>
 #include <wx/panel.h>
+#include <wx/simplebook.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/statbmp.h>
@@ -32,6 +33,10 @@
 #include "1tracker_pi/endpoint_policy.h"
 #include "1tracker_pi/endpoint_type_behavior.h"
 #include "1tracker_pi/nfl_settings.h"
+#include "endpoint_editor_page.h"
+#include "endpoint_type_picker.h"
+#include "http_json_endpoint_page.h"
+#include "nfl_endpoint_page.h"
 #include "ocpn_plugin.h"
 #include "plugin_ui_utils.h"
 
@@ -39,29 +44,32 @@ namespace {
 
 constexpr int kPreferencesDialogWidth = 576;
 constexpr int kPreferencesDialogHeight = 416;
-constexpr int kCompactSpinWidth = 58;
 constexpr int kDetailFieldWidth = 260;
-constexpr int kHeaderNameFieldWidth = 90;
-constexpr int kHeaderValueLabelWidth = 44;
 constexpr int kDetailLabelWidth = 110;
-constexpr int kDetailHeaderFieldIndent = 110;
-constexpr int kHeaderIconHeight = 58;
 constexpr int kHeaderHeroWidth = (kPreferencesDialogWidth * 3) / 4;
-constexpr int kJsonDetailHeaderWidth = 281;
-constexpr int kJsonDetailHeaderHeight = 75;
-constexpr int kNflDetailHeaderWidth = 281;
+// Per-type hero dimensions. NFL gets a fixed-size bitmap; the generic
+// JSON tracker reuses the plugin's main hero rendered at the same width
+// as the info/overview screen.
+constexpr int kNflHeroWidth = 281;
+constexpr int kNflHeroHeight = 58;
+constexpr int kGenericHeroWidth = kHeaderHeroWidth;  // 432
 
 using tracker_pi::summarizeEndpointError;
 
-tracker_pi::EndpointConfig makeDefaultEndpoint(std::size_t index) {
+tracker_pi::EndpointConfig makeDefaultEndpoint(std::size_t index,
+                                               const std::string& type) {
   tracker_pi::EndpointConfig endpoint;
   endpoint.id = tracker_pi::makeEndpointId();
   endpoint.name = "endpoint-" + std::to_string(index + 1);
-  endpoint.type = tracker_pi::kEndpointTypeHttpJsonWithHeaderKey;
+  endpoint.type = type;
   endpoint.enabled = true;
   endpoint.includeAwaAws = true;
   endpoint.timeoutSeconds = 10;
   endpoint.headerName.clear();
+  // Apply the chosen type's domain defaults (URL, timeout, min-distance,
+  // interval, etc.) before normalising so downstream code sees a complete
+  // endpoint regardless of the picked type.
+  tracker_pi::getEndpointTypeBehavior(endpoint).applyDefaults(endpoint);
   tracker_pi::normalizeEndpointConfig(endpoint);
   return endpoint;
 }
@@ -389,207 +397,120 @@ private:
     form->Add(label, 0, wxALIGN_CENTER_VERTICAL);
   }
 
-  void buildDetailHeader(wxBoxSizer* detailColumn) {
-    detailHeaderPanel_ = new wxPanel(detailPanel_, wxID_ANY);
-    auto* detailHeaderRow = new wxBoxSizer(wxHORIZONTAL);
-    detailHeaderIcon_ = new wxStaticBitmap(
-        detailHeaderPanel_, wxID_ANY,
-        tracker_plugin_ui::LoadBitmapFromPluginAssetWidth(
-            "1tracker_json_header.png", kJsonDetailHeaderWidth));
-    detailHeaderIcon_->SetMinSize(
-        wxSize(kJsonDetailHeaderWidth, kJsonDetailHeaderHeight));
-    detailHeaderRow->AddSpacer(kDetailHeaderFieldIndent);
-    detailHeaderRow->Add(detailHeaderIcon_, 0, wxALIGN_CENTER_VERTICAL);
-    detailHeaderPanel_->SetSizer(detailHeaderRow);
-    detailHeaderPanel_->SetMinSize(
-        wxSize(kDetailHeaderFieldIndent + kJsonDetailHeaderWidth,
-               kJsonDetailHeaderHeight));
-    detailColumn->Add(detailHeaderPanel_, 0, wxBOTTOM, 8);
+  // Loads the hero bitmap for a given type. NFL gets its dedicated header
+  // art at 281×58; every other type (currently just the generic HTTP
+  // JSON tracker) uses the plugin's main `1tracker_hero.png` rendered at
+  // the same width as the overview screen's hero (432 px), aspect-preserved.
+  // The shared container reserves the max dimensions so the per-type
+  // bitmap swap never reflows the dialog.
+  wxBitmap heroBitmapForType(const std::string& type) const {
+    if (tracker_pi::isNoForeignLandType(type)) {
+      return tracker_plugin_ui::LoadBitmapFromPluginAsset(
+          "1tracker_nfl_header.png",
+          wxSize(kNflHeroWidth, kNflHeroHeight));
+    }
+    return tracker_plugin_ui::LoadBitmapFromPluginAssetWidth(
+        "1tracker_hero.png", kGenericHeroWidth);
   }
 
-  void buildIdentityFields(wxFlexGridSizer* form) {
+  // Dialog-level hero sitting above Name + Type. Mirrors the list/overview
+  // panel's hero layout exactly — wxStaticBitmap inside a horizontal row
+  // with proportion=1 — so the hero sits identically on both screens.
+  // Since type is chosen at creation and immutable thereafter, the bitmap
+  // only changes when the user opens a different existing tracker;
+  // updateDialogSizeForCurrentMode refits the frame.
+  void buildSharedHero(wxBoxSizer* column) {
+    auto* headerRow = new wxBoxSizer(wxHORIZONTAL);
+    detailHero_ = new wxStaticBitmap(
+        detailPanel_, wxID_ANY,
+        heroBitmapForType(tracker_pi::kEndpointTypeNoForeignLand));
+    headerRow->Add(detailHero_, 1, wxALIGN_CENTER_VERTICAL);
+    column->Add(headerRow, 0, wxEXPAND | wxBOTTOM, 10);
+  }
+
+  // Builds the two shared-across-all-types fields: editable Name and a
+  // read-only Type display. Type is immutable after creation (the picker
+  // asks for it at Add time), so it renders as plain text rather than a
+  // combobox.
+  void buildSharedIdentityFields(wxBoxSizer* column) {
+    auto* form = createDetailForm();
+
     addDetailLabel(form, endpointNameLabel_, "Name");
     endpointNameCtrl_ = createSizedTextCtrl(detailPanel_);
     form->Add(endpointNameCtrl_, 1, wxEXPAND);
 
     addDetailLabel(form, endpointTypeLabel_, "Type");
-    endpointTypeChoice_ =
-        new wxComboBox(detailPanel_, wxID_ANY, "", wxDefaultPosition,
-                       wxDefaultSize, 0, nullptr, wxCB_READONLY);
-    endpointTypeChoice_->SetMinSize(wxSize(kDetailFieldWidth, -1));
-    endpointTypeChoice_->SetMaxSize(wxSize(kDetailFieldWidth, -1));
-    for (const auto& type : tracker_pi::listEndpointTypes()) {
-      endpointTypeChoice_->Append(wxString::FromUTF8(type.c_str()));
+    endpointTypeText_ = new wxStaticText(detailPanel_, wxID_ANY, "");
+    endpointTypeText_->SetMinSize(wxSize(kDetailFieldWidth, -1));
+    // 4px left padding so the Type text aligns visually with the Name
+    // textbox's content above (textboxes have ~4px internal padding,
+    // static texts have none — without this nudge the two rows look
+    // staggered).
+    form->Add(endpointTypeText_, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+
+    column->Add(form, 0, wxEXPAND | wxALL, 4);
+  }
+
+  // Builds the wxSimplebook and registers one EndpointEditorPage per
+  // known tracker type. Each page is a self-contained wxPanel owning its
+  // hero image, type-specific fields and in-page error display. Switching
+  // the selected page replaces the visible editor wholesale.
+  //
+  // Adding a new tracker type: append one more `endpointPages_.push_back(
+  // new tracker_plugin_ui::FooEndpointPage(...))` line below, and ensure
+  // `tracker_pi::listEndpointTypes()` includes the new type so the combo
+  // picks it up.
+  void buildEndpointEditorBook(wxBoxSizer* column) {
+    endpointEditorBook_ =
+        new wxSimplebook(detailPanel_, wxID_ANY, wxDefaultPosition,
+                         wxDefaultSize, 0);
+    endpointPages_.push_back(
+        new tracker_plugin_ui::NflEndpointPage(endpointEditorBook_));
+    endpointPages_.push_back(
+        new tracker_plugin_ui::HttpJsonEndpointPage(endpointEditorBook_));
+    for (auto* page : endpointPages_) {
+      endpointEditorBook_->AddPage(page, "", false);
+      // Let pages tell the dialog when their own size requirements change
+      // (e.g. when the error-details toggle expands/collapses the
+      // technical-details panel). Refit so the dialog frame grows or
+      // shrinks with the visible page content.
+      page->setOnContentChanged([this]() { updateDialogSizeForCurrentMode(); });
     }
-    endpointTypeChoice_->SetSelection(0);
-    form->Add(endpointTypeChoice_, 1, wxEXPAND);
+    // No wxALL margin on the book itself — each page adds its own 4px
+    // around its form. If the book were also padded, page fields would
+    // sit 4px further right than the shared Name/Type form, making the
+    // Name textbox look left-shifted relative to the rest.
+    column->Add(endpointEditorBook_, 1, wxEXPAND);
   }
 
-  void buildIntervalField(wxFlexGridSizer* form) {
-    addDetailLabel(form, endpointIntervalLabel_, "Send interval");
-    endpointIntervalRow_ = new wxBoxSizer(wxHORIZONTAL);
-    endpointIntervalSpin_ = new wxSpinCtrl(detailPanel_, wxID_ANY);
-    endpointIntervalSpin_->SetRange(1, 10080);
-    endpointIntervalSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
-    endpointIntervalSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
-    endpointIntervalRow_->Add(endpointIntervalSpin_, 0, wxALIGN_CENTER_VERTICAL);
-    endpointIntervalUnitsLabel_ =
-        new wxStaticText(detailPanel_, wxID_ANY,
-                         "minutes, if moved at least");
-    endpointIntervalRow_->Add(endpointIntervalUnitsLabel_, 0,
-                              wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
-    endpointIntervalRow_->AddSpacer(8);
-    endpointMinDistanceLabel_ =
-        new wxStaticText(detailPanel_, wxID_ANY, "");
-    endpointIntervalRow_->Add(endpointMinDistanceLabel_, 0,
-                              wxALIGN_CENTER_VERTICAL);
-    endpointIntervalRow_->AddSpacer(8);
-    endpointMinDistanceSpin_ = new wxSpinCtrl(detailPanel_, wxID_ANY);
-    endpointMinDistanceSpin_->SetRange(0, 100000);
-    endpointMinDistanceSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
-    endpointMinDistanceSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
-    endpointIntervalRow_->Add(endpointMinDistanceSpin_, 0,
-                              wxALIGN_CENTER_VERTICAL);
-    endpointMinDistanceUnitsLabel_ =
-        new wxStaticText(detailPanel_, wxID_ANY, "meters");
-    endpointIntervalRow_->Add(endpointMinDistanceUnitsLabel_, 0,
-                              wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
-    form->Add(endpointIntervalRow_, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+  // Returns the index of the page whose `type()` matches `type`, or -1 if
+  // no matching page is registered.
+  int pageIndexForType(const std::string& type) const {
+    for (std::size_t i = 0; i < endpointPages_.size(); ++i) {
+      if (endpointPages_[i] != nullptr &&
+          endpointPages_[i]->type() == type) {
+        return static_cast<int>(i);
+      }
+    }
+    return -1;
   }
 
-  void buildTransportFields(wxFlexGridSizer* form) {
-    addDetailLabel(form, endpointUrlLabel_, "URL");
-    endpointUrlCtrl_ = createSizedTextCtrl(detailPanel_);
-    form->Add(endpointUrlCtrl_, 1, wxEXPAND);
-
-    addDetailLabel(form, endpointTimeoutLabel_, "Timeout");
-    endpointTimeoutRow_ = new wxBoxSizer(wxHORIZONTAL);
-    endpointTimeoutSpin_ = new wxSpinCtrl(detailPanel_, wxID_ANY);
-    endpointTimeoutSpin_->SetRange(1, 600);
-    endpointTimeoutSpin_->SetMinSize(wxSize(kCompactSpinWidth, -1));
-    endpointTimeoutSpin_->SetMaxSize(wxSize(kCompactSpinWidth, -1));
-    endpointTimeoutRow_->Add(endpointTimeoutSpin_, 0, wxALIGN_CENTER_VERTICAL);
-    endpointTimeoutUnitsLabel_ =
-        new wxStaticText(detailPanel_, wxID_ANY, "seconds");
-    endpointTimeoutRow_->Add(endpointTimeoutUnitsLabel_, 0,
-                             wxLEFT | wxALIGN_CENTER_VERTICAL, 8);
-    form->Add(endpointTimeoutRow_, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
-  }
-
-  void buildHeaderFields(wxFlexGridSizer* form) {
-    auto* headerLabelPanel = new wxPanel(detailPanel_, wxID_ANY);
-    auto* headerLabelSizer = new wxBoxSizer(wxVERTICAL);
-    endpointHeaderNameLabel_ =
-        new wxStaticText(headerLabelPanel, wxID_ANY, "Header name");
-    setFixedLabelWidth(endpointHeaderNameLabel_);
-    headerLabelSizer->Add(endpointHeaderNameLabel_, 0, wxALIGN_CENTER_VERTICAL);
-    endpointNflBoatKeyLabel_ =
-        new wxStaticText(headerLabelPanel, wxID_ANY, "My NFL boat key");
-    setFixedLabelWidth(endpointNflBoatKeyLabel_);
-    endpointNflBoatKeyLabel_->Hide();
-    headerLabelSizer->Add(endpointNflBoatKeyLabel_, 0, wxALIGN_CENTER_VERTICAL);
-    headerLabelPanel->SetSizer(headerLabelSizer);
-    form->Add(headerLabelPanel, 0, wxALIGN_CENTER_VERTICAL);
-
-    auto* headerRow = new wxBoxSizer(wxHORIZONTAL);
-
-    endpointHeaderNameCtrl_ = new wxTextCtrl(detailPanel_, wxID_ANY);
-    endpointHeaderNameCtrl_->SetMinSize(wxSize(kHeaderNameFieldWidth, -1));
-    endpointHeaderNameCtrl_->SetMaxSize(wxSize(kHeaderNameFieldWidth, -1));
-    headerRow->Add(endpointHeaderNameCtrl_, 0, wxALIGN_CENTER_VERTICAL);
-
-    endpointHeaderValueLabel_ =
-        new wxStaticText(detailPanel_, wxID_ANY, "Value");
-    endpointHeaderValueLabel_->SetMinSize(wxSize(kHeaderValueLabelWidth, -1));
-    headerRow->Add(endpointHeaderValueLabel_, 0,
-                   wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, 8);
-
-    endpointHeaderValueCtrl_ = new wxTextCtrl(detailPanel_, wxID_ANY);
-    headerRow->Add(endpointHeaderValueCtrl_, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
-
-    form->Add(headerRow, 1, wxEXPAND);
-  }
-
-  void buildHeaderHelp(wxFlexGridSizer* form) {
-    form->AddSpacer(0);
-    endpointHeaderValueHelpPanel_ = new wxPanel(detailPanel_, wxID_ANY);
-    auto* endpointHeaderHelpSizer = new wxBoxSizer(wxHORIZONTAL);
-    endpointHeaderValueHelpText_ = new wxStaticText(
-        endpointHeaderValueHelpPanel_, wxID_ANY, "To get your boat key, open");
-    endpointHeaderValueHelpText_->SetForegroundColour(wxColour(72, 72, 72));
-    endpointHeaderHelpSizer->Add(endpointHeaderValueHelpText_, 0,
-                                 wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-    endpointHeaderValueLink_ = new wxHyperlinkCtrl(
-        endpointHeaderValueHelpPanel_, wxID_ANY, "Boat Tracking Settings",
-        tracker_pi::nfl::boatTrackingSettingsUrl());
-    endpointHeaderValueLink_->SetNormalColour(wxColour(20, 78, 140));
-    endpointHeaderValueLink_->SetHoverColour(wxColour(14, 58, 106));
-    endpointHeaderValueLink_->SetVisitedColour(wxColour(84, 62, 132));
-    endpointHeaderHelpSizer->Add(endpointHeaderValueLink_, 0,
-                                 wxRIGHT | wxALIGN_CENTER_VERTICAL, 4);
-    endpointHeaderValueHelpTailText_ = new wxStaticText(
-        endpointHeaderValueHelpPanel_, wxID_ANY, "in NFL.");
-    endpointHeaderValueHelpTailText_->SetForegroundColour(wxColour(72, 72, 72));
-    endpointHeaderHelpSizer->Add(endpointHeaderValueHelpTailText_, 0,
-                                 wxALIGN_CENTER_VERTICAL);
-    endpointHeaderValueHelpPanel_->SetSizer(endpointHeaderHelpSizer);
-    form->Add(endpointHeaderValueHelpPanel_, 0, wxTOP | wxEXPAND, 2);
-  }
-
-  void buildWindField(wxFlexGridSizer* form) {
-    addDetailLabel(form, includeAwaAwsLabel_, "Include wind");
-    includeAwaAwsCheck_ =
-        new wxCheckBox(detailPanel_, wxID_ANY, "", wxDefaultPosition,
-                       wxDefaultSize, wxCHK_2STATE | wxWANTS_CHARS);
-    form->Add(includeAwaAwsCheck_, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
-  }
-
-  void buildDetailErrorText(wxBoxSizer* detailColumn) {
-    endpointErrorPanel_ = new wxPanel(detailPanel_, wxID_ANY);
-    auto* errorSizer = new wxBoxSizer(wxVERTICAL);
-
-    endpointErrorSummaryText_ = new wxStaticText(endpointErrorPanel_, wxID_ANY, "");
-    endpointErrorSummaryText_->SetForegroundColour(wxColour(160, 32, 32));
-    endpointErrorSummaryText_->Wrap(kDetailFieldWidth);
-    errorSizer->Add(endpointErrorSummaryText_, 0, wxBOTTOM, 4);
-
-    endpointErrorMetaText_ = new wxStaticText(endpointErrorPanel_, wxID_ANY, "");
-    endpointErrorMetaText_->SetForegroundColour(wxColour(96, 96, 96));
-    errorSizer->Add(endpointErrorMetaText_, 0, wxBOTTOM, 4);
-
-    endpointErrorDetailsToggle_ =
-        new wxButton(endpointErrorPanel_, wxID_ANY, "Show technical details");
-    errorSizer->Add(endpointErrorDetailsToggle_, 0, wxBOTTOM, 4);
-
-    endpointErrorText_ = new wxStaticText(endpointErrorPanel_, wxID_ANY, "");
-    endpointErrorText_->SetForegroundColour(wxColour(128, 44, 44));
-    endpointErrorText_->Wrap(kDetailFieldWidth);
-    errorSizer->Add(endpointErrorText_, 0);
-
-    endpointErrorPanel_->SetSizer(errorSizer);
-    detailColumn->Add(endpointErrorPanel_, 0,
-                      wxTOP | wxLEFT | wxRIGHT | wxEXPAND, 4);
-    endpointErrorPanel_->Hide();
-    endpointErrorMetaText_->Hide();
-    endpointErrorDetailsToggle_->Hide();
-    endpointErrorText_->Hide();
+  tracker_plugin_ui::EndpointEditorPage* currentEditorPage() const {
+    if (endpointEditorBook_ == nullptr) return nullptr;
+    const int sel = endpointEditorBook_->GetSelection();
+    if (sel < 0 || sel >= static_cast<int>(endpointPages_.size())) {
+      return nullptr;
+    }
+    return endpointPages_[static_cast<std::size_t>(sel)];
   }
 
   void buildDetailPanel(wxBoxSizer* contentSizer) {
     detailPanel_ = new wxPanel(this, wxID_ANY, wxDefaultPosition,
                                wxDefaultSize, wxTAB_TRAVERSAL);
     auto* detailColumn = new wxBoxSizer(wxVERTICAL);
-    buildDetailHeader(detailColumn);
-    auto* form = createDetailForm();
-    buildIdentityFields(form);
-    buildIntervalField(form);
-    buildWindField(form);
-    buildTransportFields(form);
-    buildHeaderFields(form);
-    buildHeaderHelp(form);
-
-    detailColumn->Add(form, 1, wxEXPAND | wxALL, 4);
-    buildDetailErrorText(detailColumn);
+    buildSharedHero(detailColumn);
+    buildSharedIdentityFields(detailColumn);
+    buildEndpointEditorBook(detailColumn);
     detailPanel_->SetSizer(detailColumn);
     contentSizer->Add(detailPanel_, 1, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 12);
   }
@@ -767,14 +688,10 @@ private:
   }
 
   void configureDetailTabOrder() {
-    endpointTypeChoice_->MoveAfterInTabOrder(endpointNameCtrl_);
-    endpointIntervalSpin_->MoveAfterInTabOrder(endpointTypeChoice_);
-    endpointMinDistanceSpin_->MoveAfterInTabOrder(endpointIntervalSpin_);
-    endpointUrlCtrl_->MoveAfterInTabOrder(endpointMinDistanceSpin_);
-    endpointTimeoutSpin_->MoveAfterInTabOrder(endpointUrlCtrl_);
-    endpointHeaderNameCtrl_->MoveAfterInTabOrder(endpointTimeoutSpin_);
-    endpointHeaderValueCtrl_->MoveAfterInTabOrder(endpointHeaderNameCtrl_);
-    includeAwaAwsCheck_->MoveAfterInTabOrder(endpointHeaderValueCtrl_);
+    // Type is read-only text now and no longer a focusable control, so
+    // there is nothing to splice into the tab order at the dialog level;
+    // wx's default traversal handles Name → first focusable widget on the
+    // active page.
   }
 
   void focusTabTarget(wxWindow* target, bool fromKeyboard) {
@@ -828,22 +745,14 @@ private:
   }
 
   void bindDetailTabNavigation() {
-    bindTabNavigation(endpointNameCtrl_, endpointTypeChoice_);
-    bindTabNavigation(endpointTypeChoice_, endpointIntervalSpin_,
-                      endpointNameCtrl_);
-    bindTabNavigation(endpointIntervalSpin_, endpointMinDistanceSpin_,
-                      endpointTypeChoice_);
-    bindTabNavigation(endpointHeaderValueCtrl_, includeAwaAwsCheck_, nullptr,
-                      true);
-    bindTabNavigation(includeAwaAwsCheck_, nullptr, endpointHeaderValueCtrl_,
-                      false, true);
+    // No dialog-level tab hops needed: Type is static text and pages
+    // own their internal focus order.
   }
 
   void bindDetailFieldEvents() {
     configureDetailTabOrder();
     bindDetailTabNavigation();
-    endpointTypeChoice_->Bind(wxEVT_COMBOBOX,
-                              &TrackerDialog::onEndpointTypeChanged, this);
+    // Type is immutable after creation — no combo event to bind.
   }
 
   void bindGridEvents() {
@@ -882,8 +791,6 @@ private:
     detailHelpButton_->Bind(wxEVT_BUTTON, &TrackerDialog::onShowInfo, this);
     detailCancelButton_->Bind(wxEVT_BUTTON, &TrackerDialog::onDetailCancel, this);
     detailOkButton_->Bind(wxEVT_BUTTON, &TrackerDialog::onDetailOk, this);
-    endpointErrorDetailsToggle_->Bind(wxEVT_BUTTON,
-                                      &TrackerDialog::onToggleErrorDetails, this);
   }
 
   void bindEscapeHandling() {
@@ -1099,10 +1006,15 @@ private:
     SetSize(wxSize(dialogWidth, dialogHeight));
   }
 
-  std::string selectedEndpointType() const {
-    return endpointTypeChoice_ != nullptr
-               ? endpointTypeChoice_->GetStringSelection().ToStdString()
-               : tracker_pi::kEndpointTypeHttpJsonWithHeaderKey;
+  // User-facing label for a tracker type. Mirrors the picker's labels so
+  // the static Type field in the editor shows the same friendly name the
+  // user picked at creation time.
+  static std::string displayLabelForType(const std::string& type) {
+    if (type == tracker_pi::kEndpointTypeNoForeignLand) return "NoForeignLand";
+    if (type == tracker_pi::kEndpointTypeHttpJsonWithHeaderKey) {
+      return "Generic HTTP JSON with header key";
+    }
+    return type;
   }
 
   void setWindowShown(wxWindow* window, bool shown) {
@@ -1111,249 +1023,64 @@ private:
     }
   }
 
-  void setGenericTransportFieldsShown(bool shown) {
-    setWindowShown(endpointUrlLabel_, shown);
-    setWindowShown(endpointUrlCtrl_, shown);
-    setWindowShown(endpointTimeoutLabel_, shown);
-    setWindowShown(endpointTimeoutSpin_, shown);
-    setWindowShown(endpointTimeoutUnitsLabel_, shown);
-    setWindowShown(endpointHeaderNameLabel_, shown);
-    setWindowShown(endpointHeaderNameCtrl_, shown);
-    setWindowShown(includeAwaAwsLabel_, shown);
-    setWindowShown(includeAwaAwsCheck_, shown);
-  }
-
-  void setMinDistanceFieldsShown(bool shown) {
-    setWindowShown(endpointMinDistanceLabel_, shown);
-    setWindowShown(endpointMinDistanceSpin_, shown);
-    setWindowShown(endpointMinDistanceUnitsLabel_, shown);
-  }
-
   void populateEditorFromEndpoint(const tracker_pi::EndpointConfig& endpoint) {
-    includeAwaAwsCheck_->SetValue(endpoint.includeAwaAws);
     endpointNameCtrl_->SetValue(wxString::FromUTF8(endpoint.name.c_str()));
-    if (!endpointTypeChoice_->SetStringSelection(
-            wxString::FromUTF8(endpoint.type.c_str()))) {
-      endpointTypeChoice_->SetSelection(0);
+    if (endpointTypeText_ != nullptr) {
+      endpointTypeText_->SetLabel(
+          wxString::FromUTF8(displayLabelForType(endpoint.type).c_str()));
     }
-    endpointIntervalSpin_->SetValue(endpoint.sendIntervalMinutes);
-    endpointMinDistanceSpin_->SetValue(endpoint.minDistanceMeters);
-    endpointUrlCtrl_->SetValue(wxString::FromUTF8(endpoint.url.c_str()));
-    endpointTimeoutSpin_->SetValue(endpoint.timeoutSeconds);
-    endpointHeaderNameCtrl_->SetValue(
-        wxString::FromUTF8(endpoint.headerName.c_str()));
-    endpointHeaderValueCtrl_->SetValue(
-        wxString::FromUTF8(endpoint.headerValue.c_str()));
+    if (detailHero_ != nullptr) {
+      detailHero_->SetBitmap(heroBitmapForType(endpoint.type));
+    }
+    // Switch the book to the page owning this type and let the page
+    // pull its fields from the endpoint. This is the single path that
+    // selects the book page — type is immutable after creation so there
+    // is no on-combo-event path to keep in sync.
+    const int pageIndex = pageIndexForType(endpoint.type);
+    if (pageIndex >= 0 && endpointEditorBook_ != nullptr) {
+      endpointEditorBook_->SetSelection(static_cast<std::size_t>(pageIndex));
+      endpointPages_[static_cast<std::size_t>(pageIndex)]->populate(endpoint);
+    }
   }
 
   tracker_pi::EndpointConfig readEndpointFromEditor() const {
     tracker_pi::EndpointConfig endpoint;
-    endpoint.includeAwaAws = includeAwaAwsCheck_->GetValue();
     endpoint.name = endpointNameCtrl_->GetValue().ToStdString();
-    endpoint.type = endpointTypeChoice_->GetStringSelection().ToStdString();
-    endpoint.sendIntervalMinutes = endpointIntervalSpin_->GetValue();
-    endpoint.minDistanceMeters = endpointMinDistanceSpin_->GetValue();
-    endpoint.url = endpointUrlCtrl_->GetValue().ToStdString();
-    endpoint.timeoutSeconds = endpointTimeoutSpin_->GetValue();
-    endpoint.headerName = endpointHeaderNameCtrl_->GetValue().ToStdString();
-    endpoint.headerValue = endpointHeaderValueCtrl_->GetValue().ToStdString();
+    // Type is immutable across an editor session — source it from whichever
+    // page is currently visible in the book.
+    if (auto* page = currentEditorPage()) {
+      endpoint.type = page->type();
+      page->readInto(endpoint);
+    }
     return endpoint;
   }
 
   void resetEditorFields() {
-    includeAwaAwsCheck_->SetValue(true);
     endpointNameCtrl_->Clear();
-    endpointTypeChoice_->SetSelection(0);
-    endpointIntervalSpin_->SetRange(1, 10080);
-    endpointIntervalSpin_->SetValue(tracker_pi::kDefaultSendIntervalMinutes);
-    endpointMinDistanceSpin_->SetRange(0, 100000);
-    endpointMinDistanceSpin_->SetValue(tracker_pi::kDefaultMinDistanceMeters);
-    endpointUrlCtrl_->Clear();
-    endpointTimeoutSpin_->SetValue(10);
-    endpointHeaderNameCtrl_->Clear();
-    endpointHeaderValueCtrl_->Clear();
-  }
-
-  void applyHeaderUiMetadata(
-      const tracker_pi::EndpointUiMetadata& metadata) {
-    const bool isNfl = tracker_pi::isNoForeignLandType(selectedEndpointType());
-    if (endpointNflBoatKeyLabel_ != nullptr) {
-      endpointNflBoatKeyLabel_->SetLabel(
-          wxString::FromUTF8(metadata.headerValueLabel.c_str()));
-    }
-    if (endpointHeaderValueLabel_ != nullptr) {
-      endpointHeaderValueLabel_->SetLabel(
-          wxString::FromUTF8(metadata.headerValueLabel.c_str()));
-    }
-    if (endpointHeaderValueLabel_ != nullptr) {
-      endpointHeaderValueLabel_->SetToolTip(
-          wxString::FromUTF8(metadata.headerValueTooltip.c_str()));
-    }
-    if (endpointHeaderValueCtrl_ != nullptr) {
-      endpointHeaderValueCtrl_->SetToolTip(
-          wxString::FromUTF8(metadata.headerValueTooltip.c_str()));
-    }
-    if (endpointHeaderValueHelpPanel_ != nullptr) {
-      endpointHeaderValueHelpPanel_->Show(!metadata.headerValueTooltip.empty());
+    if (endpointTypeText_ != nullptr) endpointTypeText_->SetLabel("");
+    if (auto* page = currentEditorPage()) {
+      tracker_pi::EndpointConfig def;
+      def.type = page->type();
+      tracker_pi::getEndpointTypeBehavior(def).applyDefaults(def);
+      page->populate(def);
+      page->setErrorState({});
     }
   }
 
-  void applyTransportFieldVisibility(
-      const tracker_pi::EndpointUiMetadata& metadata) {
-    if (!metadata.supportsAwaAws && includeAwaAwsCheck_ != nullptr) {
-      includeAwaAwsCheck_->SetValue(false);
-    }
-    const bool isNfl = tracker_pi::isNoForeignLandType(selectedEndpointType());
-    if (endpointIntervalUnitsLabel_ != nullptr) {
-      endpointIntervalUnitsLabel_->SetLabel(
-          isNfl ? "minutes" : "minutes, if moved at least");
-    }
-    setGenericTransportFieldsShown(metadata.showsGenericTransportFields);
-    setWindowShown(endpointHeaderNameLabel_,
-                   !isNfl && metadata.showsGenericTransportFields);
-    setWindowShown(endpointNflBoatKeyLabel_, isNfl);
-    setWindowShown(endpointHeaderNameCtrl_, !isNfl);
-    setWindowShown(endpointHeaderValueLabel_, !isNfl);
-    setMinDistanceFieldsShown(!isNfl);
-    if (endpointMinDistanceSpin_ != nullptr) {
-      if (isNfl) {
-        endpointMinDistanceSpin_->SetValue(tracker_pi::nfl::kMinDistanceMeters);
-      }
-      endpointMinDistanceSpin_->Enable(!isNfl);
-    }
-  }
-
-  void applyTypeHeaderArtwork() {
-    if (detailHeaderPanel_ != nullptr) {
-      detailHeaderPanel_->Show();
-    }
-  }
-
-  void updateEndpointTypeUi(const std::string& type) {
-    const auto metadata = tracker_pi::getEndpointTypeBehavior(type).uiMetadata();
-    applyHeaderUiMetadata(metadata);
-    applyTransportFieldVisibility(metadata);
-    applyTypeHeaderArtwork();
-    if (detailPanel_ != nullptr) {
-      detailPanel_->Layout();
-    }
-    Layout();
-  }
-
+  // Push the endpoint's error status into whichever page is currently
+  // visible in the book. Each page renders its own error panel so the
+  // dialog does not have to reflow around a shared one.
   void updateEndpointErrorUi(const tracker_pi::EndpointConfig* endpoint) {
-    if (endpointErrorPanel_ == nullptr || endpointErrorSummaryText_ == nullptr ||
-        endpointErrorText_ == nullptr || endpointErrorDetailsToggle_ == nullptr) {
-      return;
-    }
-
     const auto state =
         tracker_pi::computeEndpointErrorUiState(endpoint, endpointStatuses_);
-    endpointErrorDetailsExpanded_ = false;
-
-    if (!state.visible) {
-      endpointErrorSummaryText_->SetLabel("");
-      endpointErrorMetaText_->SetLabel("");
-      endpointErrorText_->SetLabel("");
-      endpointErrorMetaText_->Hide();
-      endpointErrorText_->Hide();
-      endpointErrorDetailsToggle_->Hide();
-      endpointErrorPanel_->Hide();
-    } else {
-      const int errorWrapWidth =
-          std::max(kDetailFieldWidth,
-                   detailPanel_ != nullptr
-                       ? detailPanel_->GetClientSize().GetWidth() - 8
-                       : kDetailFieldWidth);
-      endpointErrorSummaryText_->SetLabel(wxString::FromUTF8(state.summary.c_str()));
-      endpointErrorSummaryText_->Wrap(errorWrapWidth);
-      if (!state.metaText.empty()) {
-        endpointErrorMetaText_->SetLabel(wxString::FromUTF8(state.metaText.c_str()));
-        endpointErrorMetaText_->Show();
-      } else {
-        endpointErrorMetaText_->SetLabel("");
-        endpointErrorMetaText_->Hide();
-      }
-      endpointErrorText_->SetLabel(wxString::FromUTF8(state.details.c_str()));
-      endpointErrorText_->Wrap(kDetailFieldWidth);
-      endpointErrorText_->Hide();
-      endpointErrorDetailsToggle_->SetLabel("Show technical details");
-      endpointErrorDetailsToggle_->Show();
-      endpointErrorPanel_->Show();
+    if (auto* page = currentEditorPage()) {
+      page->setErrorState(state);
     }
-
     if (detailPanel_ != nullptr) {
       detailPanel_->Layout();
     }
     updateDialogSizeForCurrentMode();
     Layout();
-  }
-
-  void onToggleErrorDetails(wxCommandEvent&) {
-    if (endpointErrorPanel_ == nullptr || endpointErrorText_ == nullptr ||
-        endpointErrorDetailsToggle_ == nullptr) {
-      return;
-    }
-
-    endpointErrorDetailsExpanded_ = !endpointErrorDetailsExpanded_;
-    endpointErrorText_->Show(endpointErrorDetailsExpanded_);
-    endpointErrorDetailsToggle_->SetLabel(endpointErrorDetailsExpanded_
-                                              ? "Hide technical details"
-                                              : "Show technical details");
-
-    if (detailPanel_ != nullptr) {
-      detailPanel_->Layout();
-    }
-    updateDialogSizeForCurrentMode();
-    Layout();
-  }
-
-  int adjustedIntervalForTypeChange(const tracker_pi::EndpointConfig& endpoint,
-                                    int currentInterval,
-                                    bool preserveBoatKey) const {
-    if (!tracker_pi::isNoForeignLandType(endpoint.type)) {
-      return std::max(currentInterval, tracker_pi::kDefaultSendIntervalMinutes);
-    }
-
-    return std::max(preserveBoatKey ? tracker_pi::kNflMinSendIntervalMinutes
-                                    : tracker_pi::kNflDefaultSendIntervalMinutes,
-                    currentInterval);
-  }
-
-  void writeEndpointDefaultsToEditor(const tracker_pi::EndpointConfig& endpoint,
-                                     const std::string& preservedBoatKey,
-                                     bool preserveBoatKey) {
-    endpointIntervalSpin_->SetRange(
-        tracker_pi::isNoForeignLandType(endpoint.type)
-            ? tracker_pi::kNflMinSendIntervalMinutes
-            : tracker_pi::kDefaultSendIntervalMinutes,
-        10080);
-    endpointIntervalSpin_->SetValue(endpoint.sendIntervalMinutes);
-    endpointMinDistanceSpin_->SetValue(endpoint.minDistanceMeters);
-    endpointMinDistanceSpin_->Enable(
-        !tracker_pi::isNoForeignLandType(endpoint.type));
-    endpointUrlCtrl_->SetValue(wxString::FromUTF8(endpoint.url.c_str()));
-    endpointTimeoutSpin_->SetValue(endpoint.timeoutSeconds);
-    endpointHeaderNameCtrl_->SetValue(
-        wxString::FromUTF8(endpoint.headerName.c_str()));
-    includeAwaAwsCheck_->SetValue(endpoint.includeAwaAws);
-    if (!preserveBoatKey) {
-      endpointHeaderValueCtrl_->Clear();
-    } else {
-      endpointHeaderValueCtrl_->SetValue(
-          wxString::FromUTF8(preservedBoatKey.c_str()));
-    }
-  }
-
-  void applyEndpointTypeDefaultsInEditor(bool preserveBoatKey) {
-    auto endpoint = readEndpointFromEditor();
-    const std::string preservedBoatKey = endpoint.headerValue;
-    const int currentInterval = endpoint.sendIntervalMinutes;
-
-    tracker_pi::getEndpointTypeBehavior(endpoint).applyDefaults(endpoint);
-    endpoint.sendIntervalMinutes = adjustedIntervalForTypeChange(
-        endpoint, currentInterval, preserveBoatKey);
-    writeEndpointDefaultsToEditor(endpoint, preservedBoatKey, preserveBoatKey);
-    updateEndpointTypeUi(endpoint.type);
   }
 
   void loadEndpointControls(int index) {
@@ -1368,7 +1095,6 @@ private:
 
     const auto& endpoint = config_.endpoints[static_cast<std::size_t>(index)];
     populateEditorFromEndpoint(endpoint);
-    applyEndpointTypeDefaultsInEditor(true);
     updateEndpointErrorUi(&endpoint);
   }
 
@@ -1394,37 +1120,15 @@ private:
   }
 
   void enableEndpointEditor(bool enabled) {
-    includeAwaAwsCheck_->Enable(enabled);
     endpointNameCtrl_->Enable(enabled);
-    endpointTypeChoice_->Enable(enabled);
-    endpointIntervalSpin_->Enable(enabled);
-    endpointMinDistanceSpin_->Enable(
-        enabled && !tracker_pi::isNoForeignLandType(selectedEndpointType()));
-    endpointUrlCtrl_->Enable(enabled);
-    endpointTimeoutSpin_->Enable(enabled);
-    endpointHeaderNameCtrl_->Enable(enabled);
-    endpointHeaderValueCtrl_->Enable(enabled);
-
+    // endpointTypeText_ is static text — nothing to enable/disable.
+    for (auto* page : endpointPages_) {
+      if (page != nullptr) page->setEnabled(enabled);
+    }
     if (!enabled) {
       resetEditorFields();
-      updateEndpointTypeUi(tracker_pi::kEndpointTypeHttpJsonWithHeaderKey);
       updateEndpointErrorUi(nullptr);
     }
-  }
-
-  void onEndpointTypeChanged(wxCommandEvent&) {
-    if (endpointTypeChoice_ == nullptr) {
-      return;
-    }
-    const bool isNfl = tracker_pi::isNoForeignLandType(selectedEndpointType());
-    if (isNfl && endpointNameCtrl_ != nullptr &&
-        endpointNameCtrl_->GetValue().StartsWith("endpoint-")) {
-      endpointNameCtrl_->SetValue(wxString::FromUTF8(
-          tracker_pi::makeNflEndpointName(static_cast<std::size_t>(
-              std::max(currentEndpointIndex_, 0)))
-              .c_str()));
-    }
-    applyEndpointTypeDefaultsInEditor(false);
   }
 
   void showListMode() {
@@ -1454,53 +1158,6 @@ private:
     Layout();
   }
 
-  wxBitmap detailHeaderBitmapForType(const std::string& type) const {
-    return tracker_pi::isNoForeignLandType(type)
-               ? tracker_plugin_ui::LoadBitmapFromPluginAsset(
-                     "1tracker_nfl_header.png",
-                     wxSize(kNflDetailHeaderWidth, kHeaderIconHeight))
-               : tracker_plugin_ui::LoadBitmapFromPluginAssetWidth(
-                     "1tracker_json_header.png", kJsonDetailHeaderWidth);
-  }
-
-  void applyDetailHeaderBitmap(const wxBitmap& headerBitmap) {
-    detailHeaderIcon_->SetBitmap(headerBitmap);
-    if (headerBitmap.IsOk()) {
-      detailHeaderIcon_->SetMinSize(headerBitmap.GetSize());
-      detailHeaderPanel_->SetMinSize(
-          wxSize(kDetailHeaderFieldIndent + headerBitmap.GetWidth(),
-                 headerBitmap.GetHeight()));
-      return;
-    }
-
-    detailHeaderIcon_->SetMinSize(
-        wxSize(kJsonDetailHeaderWidth, kJsonDetailHeaderHeight));
-    detailHeaderPanel_->SetMinSize(
-        wxSize(kDetailHeaderFieldIndent + kJsonDetailHeaderWidth,
-               kJsonDetailHeaderHeight));
-  }
-
-  void refreshDetailHeaderLayout() {
-    detailHeaderIcon_->Show();
-    detailHeaderIcon_->InvalidateBestSize();
-    detailHeaderPanel_->InvalidateBestSize();
-    if (detailHeaderPanel_ != nullptr) {
-      detailHeaderPanel_->Layout();
-    }
-    if (detailPanel_ != nullptr) {
-      detailPanel_->Layout();
-    }
-  }
-
-  void updateDetailHeading() {
-    if (detailHeaderIcon_ == nullptr) {
-      return;
-    }
-
-    applyDetailHeaderBitmap(detailHeaderBitmapForType(selectedEndpointType()));
-    refreshDetailHeaderLayout();
-  }
-
   void showDetailMode() {
     listMode_ = false;
     if (listPanel_ != nullptr) {
@@ -1524,7 +1181,6 @@ private:
     if (detailHelpButton_ != nullptr) {
       detailHelpButton_->Show();
     }
-    updateDetailHeading();
     updateDialogSizeForCurrentMode();
     Layout();
   }
@@ -1576,17 +1232,24 @@ private:
 
   void onAddEndpoint(wxCommandEvent&) {
     saveCurrentEndpoint();
+    // Ask for the type BEFORE touching config_. On cancel, do nothing —
+    // no placeholder rows, no list churn, no dialog transition.
+    const auto chosenType = tracker_plugin_ui::PickEndpointType(this);
+    if (!chosenType.has_value()) {
+      return;
+    }
     editingNewEndpoint_ = true;
-    config_.endpoints.push_back(makeDefaultEndpoint(config_.endpoints.size()));
+    config_.endpoints.push_back(
+        makeDefaultEndpoint(config_.endpoints.size(), *chosenType));
     refreshEndpointList();
     const int selection = static_cast<int>(config_.endpoints.size() - 1);
     selectEndpointRow(selection);
     loadEndpointControls(selection);
     originalEndpoint_ = tracker_pi::EndpointConfig{};
+    // Clear the Name field so the user is prompted to enter a tracker
+    // name; per-page field clearing happens inside each page's populate()
+    // when loadEndpointControls runs.
     endpointNameCtrl_->Clear();
-    endpointUrlCtrl_->Clear();
-    endpointHeaderNameCtrl_->Clear();
-    endpointHeaderValueCtrl_->Clear();
     showDetailMode();
     endpointNameCtrl_->SetFocus();
   }
@@ -1738,8 +1401,6 @@ private:
   wxHyperlinkCtrl* infoIssuesLink_ = nullptr;
   wxPanel* listPanel_ = nullptr;
   wxPanel* detailPanel_ = nullptr;
-  wxPanel* detailHeaderPanel_ = nullptr;
-  wxStaticBitmap* detailHeaderIcon_ = nullptr;
   wxGrid* endpointGrid_ = nullptr;
   std::unique_ptr<ActionIcons> actionIcons_;
   std::map<std::string, tracker_pi::EndpointUiState> endpointStatuses_;
@@ -1758,40 +1419,29 @@ private:
   wxButton* detailHelpButton_ = nullptr;
   wxButton* detailCancelButton_ = nullptr;
   wxButton* detailOkButton_ = nullptr;
-  wxPanel* endpointErrorPanel_ = nullptr;
-  wxStaticText* endpointErrorSummaryText_ = nullptr;
-  wxStaticText* endpointErrorMetaText_ = nullptr;
-  wxButton* endpointErrorDetailsToggle_ = nullptr;
-  wxStaticText* endpointErrorText_ = nullptr;
-  bool endpointErrorDetailsExpanded_ = false;
-  wxPanel* endpointHeaderValueHelpPanel_ = nullptr;
-  wxStaticText* endpointHeaderValueHelpText_ = nullptr;
-  wxHyperlinkCtrl* endpointHeaderValueLink_ = nullptr;
-  wxStaticText* endpointHeaderValueHelpTailText_ = nullptr;
+
+  // Shared hero sitting above Name/Type. Raw wxStaticBitmap, mirroring
+  // the info/overview screen's layout exactly. Since type is immutable
+  // after creation, the bitmap only changes when the user opens a
+  // different existing tracker (handled in populateEditorFromEndpoint).
+  wxStaticBitmap* detailHero_ = nullptr;
+
+  // Per-type editor pages inside a simplebook. Index order == registration
+  // order in buildEndpointEditorBook(); page selection tracks the Type
+  // combo.
+  wxSimplebook* endpointEditorBook_ = nullptr;
+  std::vector<tracker_plugin_ui::EndpointEditorPage*> endpointPages_;
+
+  // Shared identity widgets that live outside the book (every type has a
+  // name and a type). The matching labels are created by addDetailLabel,
+  // which stores the label through a reference — we keep the pointers so
+  // that signature continues to work without special-casing. `endpointTypeText_`
+  // is a read-only wxStaticText displaying the current tracker's type;
+  // changing the type post-creation is not supported (pick at Add time).
   wxStaticText* endpointNameLabel_ = nullptr;
   wxStaticText* endpointTypeLabel_ = nullptr;
-  wxStaticText* endpointIntervalLabel_ = nullptr;
-  wxStaticText* endpointIntervalUnitsLabel_ = nullptr;
-  wxStaticText* endpointMinDistanceLabel_ = nullptr;
-  wxStaticText* endpointMinDistanceUnitsLabel_ = nullptr;
-  wxStaticText* endpointUrlLabel_ = nullptr;
-  wxStaticText* endpointTimeoutLabel_ = nullptr;
-  wxStaticText* endpointTimeoutUnitsLabel_ = nullptr;
-  wxStaticText* endpointHeaderNameLabel_ = nullptr;
-  wxStaticText* endpointNflBoatKeyLabel_ = nullptr;
-  wxStaticText* endpointHeaderValueLabel_ = nullptr;
-  wxStaticText* includeAwaAwsLabel_ = nullptr;
-  wxSizer* endpointIntervalRow_ = nullptr;
-  wxSizer* endpointTimeoutRow_ = nullptr;
-  wxCheckBox* includeAwaAwsCheck_ = nullptr;
   wxTextCtrl* endpointNameCtrl_ = nullptr;
-  wxComboBox* endpointTypeChoice_ = nullptr;
-  wxSpinCtrl* endpointIntervalSpin_ = nullptr;
-  wxSpinCtrl* endpointMinDistanceSpin_ = nullptr;
-  wxTextCtrl* endpointUrlCtrl_ = nullptr;
-  wxSpinCtrl* endpointTimeoutSpin_ = nullptr;
-  wxTextCtrl* endpointHeaderNameCtrl_ = nullptr;
-  wxTextCtrl* endpointHeaderValueCtrl_ = nullptr;
+  wxStaticText* endpointTypeText_ = nullptr;
 };
 
 TrackerDialog* CreateTrackerDialog(

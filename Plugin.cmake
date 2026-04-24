@@ -19,12 +19,12 @@ set(OCPN_RELEASE_REPO
 
 # -------- Plugin identity --------
 set(PKG_NAME 1tracker_pi)
-set(PKG_VERSION 0.1.0)
+set(PKG_VERSION 0.9.1)
 set(PKG_PRERELEASE "")
 
 set(DISPLAY_NAME 1tracker)
 set(PLUGIN_API_NAME 1tracker)
-set(PKG_SUMMARY "Sends position and wind to HTTP endpoints and noforeignland.")
+set(PKG_SUMMARY "Send position every x minutes to NoForeignland and other endpoints.")
 set(PKG_DESCRIPTION [=[
 1tracker sends your boat's position (and optionally apparent wind) from OpenCPN
 to one or more HTTP endpoints on a configurable interval. Supported endpoint
@@ -43,6 +43,9 @@ set(PKG_INFO_URL https://github.com/pa2wlt/1tracker_pi/blob/master/docs/manual.m
 # -------- Source files for the plugin shared library --------
 set(SRC
     src/crash_guard.cpp
+    src/endpoint_type_picker.cpp
+    src/http_json_endpoint_page.cpp
+    src/nfl_endpoint_page.cpp
     src/plugin.cpp
     src/plugin_ui_utils.cpp
     src/tracker_dialog.cpp
@@ -72,6 +75,14 @@ macro(late_init)
   find_package(wxWidgets COMPONENTS base core net xml)
   if (wxWidgets_FOUND)
     include(${wxWidgets_USE_FILE})
+  elseif (QT_ANDROID)
+    # Android packaging pass: no host wx, but OCPNAndroidCommon provides wx
+    # headers. Include AndroidLibs here (before add_plugin_libraries) so its
+    # directory-scope include_directories() propagates into onetracker_core
+    # and opencpn-libs/*. QT_ANDROID is ON only on the second cmake pass
+    # (OCPN_TARGET_TUPLE matches android*), so this does NOT run on the first
+    # Android pass or on flatpak host configure.
+    include(AndroidLibs)
   endif ()
 
   # macOS: if OpenCPN.app bundled wx exists, use it for dev builds
@@ -115,10 +126,11 @@ macro(add_plugin_libraries)
   add_subdirectory("${CMAKE_SOURCE_DIR}/libs/plugin_metadata")
   target_link_libraries(${PACKAGE_NAME} PRIVATE plugin_metadata_headers)
 
-  # Skip gracefully when wx is unavailable (e.g. flatpak host configure pass).
-  # guarded with if/else instead of return() since return() in a macro returns
-  # from the caller scope (the whole CMakeLists.txt), aborting everything after.
-  if (wxWidgets_FOUND)
+  # Skip gracefully when neither host wx nor the Android wx blob is available
+  # (e.g. flatpak host configure pass). Guarded with if/else instead of
+  # return() since return() in a macro returns from the caller scope
+  # (the whole CMakeLists.txt), aborting everything after.
+  if (wxWidgets_FOUND OR QT_ANDROID)
     add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/jsoncpp")
     add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/curl")
     add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/wxcurl")

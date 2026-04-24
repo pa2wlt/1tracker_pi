@@ -39,6 +39,7 @@ public:
   wxString GetCommonName() override;
   wxString GetShortDescription() override;
   wxString GetLongDescription() override;
+  wxBitmap* GetPlugInBitmap() override;
   int GetToolbarToolCount() override;
   void OnToolbarToolCallback(int id) override;
   void ShowPreferencesDialog(wxWindow* parent) override;
@@ -83,7 +84,8 @@ private:
                             const tracker_pi::EndpointSender::Result& result);
   ToolbarState computeToolbarState() const;
   void loadToolbarTemplate();
-  wxBitmap renderToolbarBitmap(ToolbarState state) const;
+  wxBitmap renderToolbarBitmap(ToolbarState state,
+                               int pxSize = 32 /* kToolbarBitmapSize */) const;
   void refreshToolbarIcon();
   void logMessage(const std::string& message) const;
 

@@ -102,15 +102,17 @@ struct ToolbarIconColors {
   std::string boatFill;
 };
 
-wxBitmap renderSvgStringToBitmap(const std::string& svg) {
+wxBitmap renderSvgStringToBitmap(const std::string& svg,
+                                 int pxSize = kToolbarBitmapSize) {
 #if wxCHECK_VERSION(3, 1, 6)
   if (svg.empty()) {
     return wxNullBitmap;
   }
-  const wxSize size(kToolbarBitmapSize, kToolbarBitmapSize);
+  const wxSize size(pxSize, pxSize);
   return wxBitmapBundle::FromSVG(svg.c_str(), size).GetBitmap(size);
 #else
   (void)svg;
+  (void)pxSize;
   return wxNullBitmap;
 #endif
 }
@@ -390,6 +392,31 @@ wxString OneTrackerPi::GetShortDescription() {
 
 wxString OneTrackerPi::GetLongDescription() {
   return tracker_pi::kPluginDescription;
+}
+
+// Icon shown next to the plugin entry in OpenCPN's Options → Plugins list.
+// We reuse the toolbar SVG template with the "green marker" colour set, so
+// the list icon matches the brand colour shown when the plugin is happily
+// sending. The bitmap must stay alive for the duration OpenCPN holds the
+// pointer, so it's a function-local static.
+wxBitmap* OneTrackerPi::GetPlugInBitmap() {
+  static wxBitmap bitmap;
+  if (!bitmap.IsOk()) {
+    // OpenCPN may call GetPlugInBitmap() before Init() loads the toolbar
+    // template. Lazy-load here so the green icon is available on first
+    // render regardless of call order.
+    if (toolbarTemplate_.empty()) {
+      loadToolbarTemplate();
+    }
+    bitmap = renderToolbarBitmap(ToolbarState::Green, 128);
+    if (!bitmap.IsOk()) {
+      // Fallback for older wx where the SVG renderer is unavailable: use
+      // the neutral asset. Still better than the empty-square default.
+      bitmap = tracker_plugin_ui::LoadBitmapFromPluginAsset(
+          "1tracker_icon.svg", wxSize(128, 128));
+    }
+  }
+  return &bitmap;
 }
 
 int OneTrackerPi::GetToolbarToolCount() { return 1; }
@@ -838,7 +865,8 @@ void OneTrackerPi::loadToolbarTemplate() {
              std::to_string(toolbarTemplate_.size()) + " bytes)");
 }
 
-wxBitmap OneTrackerPi::renderToolbarBitmap(ToolbarState state) const {
+wxBitmap OneTrackerPi::renderToolbarBitmap(ToolbarState state,
+                                           int pxSize) const {
   if (toolbarTemplate_.empty()) {
     return wxNullBitmap;
   }
@@ -850,7 +878,7 @@ wxBitmap OneTrackerPi::renderToolbarBitmap(ToolbarState state) const {
     colors.markerFill = kToolbarColorRed;
   }
   const std::string svg = applyToolbarColors(toolbarTemplate_, colors);
-  return renderSvgStringToBitmap(svg);
+  return renderSvgStringToBitmap(svg, pxSize);
 }
 
 void OneTrackerPi::refreshToolbarIcon() {
