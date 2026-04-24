@@ -354,14 +354,33 @@ workflows:
           <<: *std-filters
       - build-trixie-armhf:
           <<: *std-filters
+      - update-catalog:
+          <<: *std-filters
+          requires:
+            - build-flatpak-arm64
+            - build-flatpak-x86
+            - build-flatpak-arm64-2408
+            - build-flatpak-x86-2408
+            - build-flatpak-arm64-2508
+            - build-flatpak-x86-2508
+            - build-macos-universal
+            - build-macos-intel-legacy
+            - build-android-arm64
+            - build-android-armhf
+            - build-bullseye-wx32
+            - build-bullseye
+            - build-bookworm-arm64
+            - build-bookworm-armhf
+            - build-bookworm
+            - build-trixie
+            - build-trixie-arm64
+            - build-trixie-armhf
 
-  catalog:
+  # Manual escape hatch: trigger a pipeline with parameter catalog_only=true
+  # to re-run only the catalog job (e.g. if a build_all run's catalog step
+  # failed, or you want to force-regenerate the catalog without rebuilding).
+  catalog_only:
+    when: << pipeline.parameters.catalog_only >>
     jobs:
       - update-catalog:
-          filters:
-            branches:
-              ignore:
-                - tmp
-                - /tmp-.*/
-            tags:
-              only: /.*/
+          <<: *std-filters

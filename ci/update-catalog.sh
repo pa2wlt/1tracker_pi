@@ -39,13 +39,17 @@ def build_num(ver):
     except Exception:
         return 0
 
-# Paginate through all packages, keeping the highest-build-number XML per filename
+# Paginate through all packages, keeping the highest-build-number XML per filename.
+# Cloudsmith returns results as a top-level JSON array and advertises the next page
+# via an RFC 5988 Link header (rel="next") — not via a body field. Follow that
+# header until it is absent.
 best = {}   # filename -> (version, cdn_url)
-page = f"https://api.cloudsmith.io/v1/packages/{repo}/?page_size=100&q=filename:.xml"
+page_url = f"https://api.cloudsmith.io/v1/packages/{repo}/?page_size=100&q=filename:.xml"
 
-while page:
-    with urllib.request.urlopen(page) as r:
+while page_url:
+    with urllib.request.urlopen(page_url) as r:
         data = json.load(r)
+        link_hdr = r.headers.get('Link', '')
     items = data if isinstance(data, list) else data.get('results', [])
     for p in items:
         fn  = p.get('filename', '')
@@ -55,10 +59,8 @@ while page:
             continue
         if fn not in best or build_num(ver) > build_num(best[fn][0]):
             best[fn] = (ver, url)
-    if isinstance(data, dict) and data.get('next'):
-        page = data['next']
-    else:
-        break
+    m = re.search(r'<([^>]+)>;\s*rel="next"', link_hdr)
+    page_url = m.group(1) if m else None
 
 entries = []
 for fn, (ver, url) in sorted(best.items()):
