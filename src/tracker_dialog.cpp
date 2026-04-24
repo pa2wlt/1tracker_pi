@@ -609,7 +609,7 @@ private:
   void applyGridColumnSizing() {
     endpointGrid_->SetColSize(0, 31);
     endpointGrid_->SetColSize(1, 155);
-    endpointGrid_->SetColSize(2, 90);
+    endpointGrid_->SetColSize(2, 140);
     endpointGrid_->SetColSize(3, 150);
     endpointGrid_->SetColSize(4, 94);
     endpointGrid_->SetColSize(5, 30);
@@ -627,7 +627,9 @@ private:
     endpointGrid_->SetSelectionMode(wxGrid::wxGridSelectRows);
     endpointGrid_->SetRowLabelSize(0);
     endpointGrid_->SetDefaultCellBackgroundColour(*wxWHITE);
+    endpointGrid_->SetDefaultCellTextColour(*wxBLACK);
     endpointGrid_->SetSelectionBackground(*wxWHITE);
+    endpointGrid_->SetSelectionForeground(*wxBLACK);
     if (tracker_plugin_ui::IsWindowsPlatform()) {
       wxColour labelBg;
       wxColour labelFg;
@@ -637,10 +639,6 @@ private:
       if (GetGlobalColor("DILG3", &labelFg)) {
         endpointGrid_->SetLabelTextColour(labelFg);
       }
-    }
-    wxColour labelFg;
-    if (GetGlobalColor("DILG3", &labelFg)) {
-      endpointGrid_->SetSelectionForeground(labelFg);
     }
     wxFont labelFont = endpointGrid_->GetLabelFont();
     labelFont.SetWeight(wxFONTWEIGHT_BOLD);
