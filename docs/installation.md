@@ -27,10 +27,10 @@ Pick the build that matches your operating system:
 
 | Operating system | Version | Download |
 |---|---|---|
-| **macOS** (Apple Silicon & Intel) | v0.9.1-beta2 | [1tracker-v0.9.1-beta2_darwin-universal.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-darwin-wx32-universal-10.15-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_darwin-wx32-10.15-arm64-x86_64.tar.gz) |
-| **Windows** | v0.9.1-beta2 | [1tracker-v0.9.1-beta2_windows.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-msvc-wx32-10-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_msvc-wx32-10-x86.tar.gz) |
-| **Linux** (Debian/Ubuntu 12, x86_64) | v0.9.1-beta2 | [1tracker-v0.9.1-beta2_debian12-x86_64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-x86_64-12-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-x86_64-12-x86_64.tar.gz) |
-| **Raspberry Pi** (64-bit, Pi 4/5 on Raspberry Pi OS 12) | v0.9.1-beta2 | [1tracker-v0.9.1-beta2_debian12-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-arm64-A64-12-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-arm64-12-arm64.tar.gz) |
+| **macOS** (Apple Silicon & Intel) | v0.9.1-beta3 | [1tracker-v0.9.1-beta3_darwin-universal.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-darwin-wx32-universal-10.15-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_darwin-wx32-10.15-arm64-x86_64.tar.gz) |
+| **Windows** | v0.9.1-beta3 | [1tracker-v0.9.1-beta3_windows.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-msvc-wx32-10-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_msvc-wx32-10-x86.tar.gz) |
+| **Linux** (Debian/Ubuntu 12, x86_64) | v0.9.1-beta3 | [1tracker-v0.9.1-beta3_debian12-x86_64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-x86_64-12-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-x86_64-12-x86_64.tar.gz) |
+| **Raspberry Pi** (64-bit, Pi 4/5 on Raspberry Pi OS 12) | v0.9.1-beta3 | [1tracker-v0.9.1-beta3_debian12-arm64.tar.gz](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-arm64-A64-12-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-arm64-12-arm64.tar.gz) |
 
 > **On Android?** The install procedure is different — Android OpenCPN has no
 > "Install from file" button, so the tarball flow below does not apply.
@@ -44,19 +44,19 @@ sure which one you need, the table above is almost certainly right.
 
 | Config | Download |
 |---|---|
-| **macOS Intel-only** (older Macs without Apple Silicon) | [darwin-wx32-10.15-x86_64](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-darwin-wx32-10.15-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_darwin-wx32-10.15-x86_64.tar.gz) |
-| **Debian/Ubuntu 11** (x86_64) | [debian-x86_64-11](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-x86_64-11-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-x86_64-11-x86_64.tar.gz) |
-| **Debian/Ubuntu 11 (wx3.2 build)** (x86_64) | [debian-wx32-x86_64-11](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-wx32-x86_64-11-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-wx32-x86_64-11-x86_64.tar.gz) |
-| **Debian/Ubuntu 13** (x86_64) | [debian-x86_64-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-x86_64-13-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-x86_64-13-x86_64.tar.gz) |
-| **Raspberry Pi 64-bit, Debian 13** (Pi OS 13) | [debian-arm64-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-arm64-A64-13-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-arm64-13-arm64.tar.gz) |
-| **Raspberry Pi 32-bit, Debian 12** (older Pi or 32-bit Pi OS 12) | [debian-armhf-12](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-armhf-A32-12-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-armhf-12-armhf.tar.gz) |
-| **Raspberry Pi 32-bit, Debian 13** (older Pi or 32-bit Pi OS 13) | [debian-armhf-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-debian-armhf-A32-13-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_debian-armhf-13-armhf.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 22.08) | [flatpak-x86_64-22.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-x86_64-22.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-x86_64-22.08-x86_64.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 24.08) | [flatpak-x86_64-24.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-x86_64-24.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-x86_64-24.08-x86_64.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 25.08) | [flatpak-x86_64-25.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-x86_64-25.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-x86_64-25.08-x86_64.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 22.08) | [flatpak-aarch64-22.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-aarch64-A64-22.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-aarch64-22.08-aarch64.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 24.08) | [flatpak-aarch64-24.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-aarch64-A64-24.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-aarch64-24.08-aarch64.tar.gz) |
-| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 25.08) | [flatpak-aarch64-25.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta2-flatpak-aarch64-A64-25.08-tarball/versions/v0.9.1-beta2/1tracker-v0.9.1-beta2_flatpak-aarch64-25.08-aarch64.tar.gz) |
+| **macOS Intel-only** (older Macs without Apple Silicon) | [darwin-wx32-10.15-x86_64](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-darwin-wx32-10.15-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_darwin-wx32-10.15-x86_64.tar.gz) |
+| **Debian/Ubuntu 11** (x86_64) | [debian-x86_64-11](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-x86_64-11-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-x86_64-11-x86_64.tar.gz) |
+| **Debian/Ubuntu 11 (wx3.2 build)** (x86_64) | [debian-wx32-x86_64-11](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-wx32-x86_64-11-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-wx32-x86_64-11-x86_64.tar.gz) |
+| **Debian/Ubuntu 13** (x86_64) | [debian-x86_64-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-x86_64-13-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-x86_64-13-x86_64.tar.gz) |
+| **Raspberry Pi 64-bit, Debian 13** (Pi OS 13) | [debian-arm64-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-arm64-A64-13-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-arm64-13-arm64.tar.gz) |
+| **Raspberry Pi 32-bit, Debian 12** (older Pi or 32-bit Pi OS 12) | [debian-armhf-12](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-armhf-A32-12-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-armhf-12-armhf.tar.gz) |
+| **Raspberry Pi 32-bit, Debian 13** (older Pi or 32-bit Pi OS 13) | [debian-armhf-13](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-debian-armhf-A32-13-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_debian-armhf-13-armhf.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 22.08) | [flatpak-x86_64-22.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-x86_64-22.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-x86_64-22.08-x86_64.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 24.08) | [flatpak-x86_64-24.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-x86_64-24.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-x86_64-24.08-x86_64.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, x86_64, runtime 25.08) | [flatpak-x86_64-25.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-x86_64-25.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-x86_64-25.08-x86_64.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 22.08) | [flatpak-aarch64-22.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-aarch64-A64-22.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-aarch64-22.08-aarch64.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 24.08) | [flatpak-aarch64-24.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-aarch64-A64-24.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-aarch64-24.08-aarch64.tar.gz) |
+| **Flatpak** (OpenCPN via Flathub, ARM64, runtime 25.08) | [flatpak-aarch64-25.08](https://dl.cloudsmith.io/public/pa2wlt/1tracker-beta/raw/names/1tracker-v0.9.1-beta3-flatpak-aarch64-A64-25.08-tarball/versions/v0.9.1-beta3/1tracker-v0.9.1-beta3_flatpak-aarch64-25.08-aarch64.tar.gz) |
 
 **How to tell which Flatpak runtime you have:** if you installed OpenCPN from
 Flathub, run `flatpak info org.opencpn.OpenCPN` and look at the `Runtime`
@@ -175,4 +175,4 @@ Or contact the developer directly.
 
 ---
 
-*Last updated: 2026-04-24 — all platforms at v0.9.1-beta2*
+*Last updated: 2026-04-25 — all platforms at v0.9.1-beta3*
