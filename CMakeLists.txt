@@ -124,8 +124,9 @@ if (NOT ${BUILD_TYPE} STREQUAL "flatpak")
     include(MacosWxwidgets)
   endif ()
   include(PluginInstall)
-  # AndroidLibs is included earlier from late_init() when QT_ANDROID is set,
-  # so its wx include dirs propagate into onetracker_core and opencpn-libs/*.
+  if (QT_ANDROID)
+    include(AndroidLibs)
+  endif ()
   include(PluginLocalization)
 endif ()
 
