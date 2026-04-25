@@ -140,32 +140,37 @@ macro(add_plugin_libraries)
         ${wxWidgets_LIBRARIES}
     )
   elseif (QT_ANDROID)
-    # Android: bundle wxcurl AND jsoncpp into the plugin .so so their C++
-    # class symbols (wxCurlHTTP::SetCurlHandleToDefaults,
-    # Json::Value::Value, Json::CharReaderBuilder, ...) resolve at dlopen.
+    # Android: bundle every C/C++ helper that libgorp doesn't export
+    # into the plugin .so directly. The pre-beta4 assumption that
+    # "wx / curl / wxcurl / jsoncpp all resolve against libgorp" turned
+    # out to be wrong for everything except wx itself — each beta peeled
+    # back another layer:
     #
-    # The pre-beta4 assumption "wx / curl / wxcurl / jsoncpp all resolve
-    # against the OpenCPN host (libgorp)" only holds for wx and the
-    # libcurl C ABI. wxcurl and jsoncpp are static C++ helpers that each
-    # plugin is expected to compile into itself — libgorp links them
-    # internally with hidden visibility so their class symbols are NOT
-    # exported. Without bundling, dlopen fails with errors like
-    # "cannot locate symbol _ZN10wxCurlHTTP23SetCurlHandleToDefaults..."
-    # (beta3) or "_ZN4Json5ValueC1ENS_9ValueTypeE" (beta4).
+    #   beta3: wxCurlHTTP::SetCurlHandleToDefaults  (wxcurl class symbol)
+    #   beta4: Json::Value::Value(Json::ValueType)  (jsoncpp class symbol)
+    #   beta5: curl_easy_init                       (libcurl C ABI)
+    #
+    # libgorp links curl/openssl/jsoncpp/wxcurl internally with hidden
+    # visibility, so none of those symbols are reachable for our plugin
+    # at dlopen time. Only wx and Qt5 symbols actually escape libgorp.
+    # So we bundle: jsoncpp, wxcurl, libcurl, libssl, libcrypto.
     #
     # We can't add_subdirectory(opencpn-libs/curl) because its Android
-    # branch swaps the 32/64-bit lib paths and would link the wrong-arch
-    # precompiled libcurl.a. Instead, fabricate a header-only ocpn::libcurl
-    # interface target pointing at the correct ABI's curl headers, so
-    # opencpn-libs/wxcurl/CMakeLists.txt is satisfied without pulling in
-    # the broken curl link target. The curl_easy_* call sites inside
-    # wxcurl resolve at dlopen against libgorp (--allow-shlib-undefined,
-    # set in late_init above, leaves them dangling at link time).
+    # branch in CMakeLists.txt:43-56 swaps the 32/64-bit lib paths and
+    # would link the wrong-arch precompiled .a. Instead, build a proper
+    # ocpn::libcurl INTERFACE target ourselves pointing at the correct
+    # ABI's headers and the correct ABI's prebuilt static archives.
     if (NOT TARGET ocpn::libcurl)
-      add_library(_curl_headers_android INTERFACE)
-      add_library(ocpn::libcurl ALIAS _curl_headers_android)
-      target_include_directories(_curl_headers_android INTERFACE
+      add_library(_curl_android INTERFACE)
+      add_library(ocpn::libcurl ALIAS _curl_android)
+      target_include_directories(_curl_android INTERFACE
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/include"
+      )
+      target_link_libraries(_curl_android INTERFACE
+          "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcurl.a"
+          "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/libssl.a"
+          "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcrypto.a"
+          z
       )
     endif ()
     add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/jsoncpp")
@@ -184,5 +189,15 @@ macro(add_plugin_libraries)
         ocpn::wxcurl
         ocpn::jsoncpp
     )
+    # Hide every symbol pulled in from a static archive so our bundled
+    # libcurl/libssl/libcrypto/jsoncpp/wxcurl don't get exported from
+    # lib1tracker_pi.so. Without this, two plugins on the same device
+    # both bundling these libs would cross-resolve into whichever loaded
+    # first — fine for identical versions, undefined behaviour otherwise
+    # (especially OpenSSL state). The plugin's exported entrypoints
+    # (create_pi/destroy_pi/...) live in our own .cpp objects and are
+    # unaffected.
+    target_link_options(${PACKAGE_NAME} PRIVATE
+        "-Wl,--exclude-libs,ALL")
   endif ()
 endmacro ()
