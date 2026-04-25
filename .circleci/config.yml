@@ -5,6 +5,13 @@ parameters:
   catalog_only:
     type: boolean
     default: false
+  cloudsmith_repo:
+    # Override the auto-detected Cloudsmith repo for the update-catalog job.
+    # Useful when running catalog_only on master (no tag) but you want the
+    # output to land in 1tracker-beta or 1tracker-prod instead of the alpha
+    # default. Empty string keeps the auto-detection in update-catalog.sh.
+    type: string
+    default: ""
 
 debian-steps: &debian-steps
   steps:
@@ -298,6 +305,8 @@ jobs:
   update-catalog:
     docker:
       - image: cimg/python:3.11
+    environment:
+      - CLOUDSMITH_REPO: << pipeline.parameters.cloudsmith_repo >>
     steps:
       - checkout
       - run: pip install -q cloudsmith-cli
