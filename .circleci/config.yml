@@ -363,6 +363,23 @@ workflows:
           <<: *std-filters
       - build-trixie-armhf:
           <<: *std-filters
+      # Early catalog refresh: runs as soon as both Android builds are
+      # green, so on-call testers don't have to wait the ~30+ extra minutes
+      # for slower jobs (mainly macOS-universal in the queue). Publishes a
+      # partial catalog containing whatever's already in the Cloudsmith
+      # bucket — newly-built platforms naturally surface as their
+      # individual builds finish, because update-catalog.sh reads from the
+      # bucket and dedups to the highest version per platform.
+      #
+      # The full update-catalog below runs after every build; with
+      # cloudsmith push --republish on the same dated version, it
+      # overwrites the partial catalog with the complete one.
+      - update-catalog:
+          name: update-catalog-after-android
+          <<: *std-filters
+          requires:
+            - build-android-arm64
+            - build-android-armhf
       - update-catalog:
           <<: *std-filters
           requires:
