@@ -46,6 +46,14 @@ const char* kToolbarColorWhite = "#d0d0d0";
 const char* kToolbarColorBlack = "#333333";
 const char* kToolbarColorGreen = "#2e7d32";
 const char* kToolbarColorRed = "#c62828";
+#ifdef __ANDROID__
+// Pre-rendered PNG fallbacks used on Android, where the wxQt build can't
+// rasterize SVG via wxBitmapBundle::FromSVG (the toolbar would silently
+// stay invisible). Three states; mirror the SVG's color cycling.
+const char* kToolbarPngNeutral = "1tracker_toolbar_icon_neutral.png";
+const char* kToolbarPngGreen = "1tracker_toolbar_icon_green.png";
+const char* kToolbarPngRed = "1tracker_toolbar_icon_red.png";
+#endif
 constexpr unsigned int kToolbarBitmapSize = 32;
 
 std::vector<std::string> split(const std::string& value, char separator) {
@@ -867,6 +875,19 @@ void OneTrackerPi::loadToolbarTemplate() {
 
 wxBitmap OneTrackerPi::renderToolbarBitmap(ToolbarState state,
                                            int pxSize) const {
+#ifdef __ANDROID__
+  // wxQt on Android lacks the NanoSVG-based wxBitmapBundle::FromSVG that
+  // the desktop builds rely on, so SVG-with-color-substitution silently
+  // returns an invalid bitmap and the toolbar button never appears. Fall
+  // back to three pre-rendered PNGs that mirror the SVG's color cycling.
+  const char* fileName = kToolbarPngNeutral;
+  if (state == ToolbarState::Green) {
+    fileName = kToolbarPngGreen;
+  } else if (state == ToolbarState::Red) {
+    fileName = kToolbarPngRed;
+  }
+  return tracker_plugin_ui::LoadBitmapFromPluginAssetWidth(fileName, pxSize);
+#else
   if (toolbarTemplate_.empty()) {
     return wxNullBitmap;
   }
@@ -879,6 +900,7 @@ wxBitmap OneTrackerPi::renderToolbarBitmap(ToolbarState state,
   }
   const std::string svg = applyToolbarColors(toolbarTemplate_, colors);
   return renderSvgStringToBitmap(svg, pxSize);
+#endif
 }
 
 void OneTrackerPi::refreshToolbarIcon() {
