@@ -140,13 +140,37 @@ macro(add_plugin_libraries)
         ${wxWidgets_LIBRARIES}
     )
   elseif (QT_ANDROID)
-    # Android: add ONLY onetracker_core. wx / curl / wxcurl / jsoncpp symbols
-    # resolve at dlopen against the OpenCPN host (libgorp), so we skip the
-    # opencpn-libs/* subdirectories here. opencpn-libs/curl in particular has
-    # a 32/64-bit path inversion in its Android branch that would break
-    # linking — that is a separate upstream fix. Headers for curl / wxcurl /
-    # jsoncpp are added directly from libs/onetracker_core/CMakeLists.txt.
+    # Android: bundle wxcurl into the plugin .so so wxCurlHTTP vtable
+    # symbols (e.g. SetCurlHandleToDefaults) resolve at dlopen.
+    #
+    # The previous assumption "wx / curl / wxcurl / jsoncpp all resolve
+    # against the OpenCPN host (libgorp)" only holds for wx, jsoncpp and
+    # the libcurl C symbols. wxcurl is a static helper that each plugin
+    # is expected to compile in itself — libgorp does NOT export
+    # wxCurlBase / wxCurlHTTP class symbols, so dlopen fails with
+    # "cannot locate symbol _ZN10wxCurlHTTP23SetCurlHandleToDefaults..."
+    # if we don't include wxcurl's TUs in our own .so.
+    #
+    # We can't add_subdirectory(opencpn-libs/curl) because its Android
+    # branch swaps the 32/64-bit lib paths and would link the wrong-arch
+    # precompiled libcurl.a. Instead, fabricate a header-only ocpn::libcurl
+    # interface target pointing at the correct ABI's curl headers, so
+    # opencpn-libs/wxcurl/CMakeLists.txt is satisfied without pulling in
+    # the broken curl link target. The curl_easy_* call sites inside
+    # wxcurl resolve at dlopen against libgorp (--allow-shlib-undefined,
+    # set in late_init above, leaves them dangling at link time).
+    if (NOT TARGET ocpn::libcurl)
+      add_library(_curl_headers_android INTERFACE)
+      add_library(ocpn::libcurl ALIAS _curl_headers_android)
+      target_include_directories(_curl_headers_android INTERFACE
+          "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/include"
+      )
+    endif ()
+    add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/wxcurl")
     add_subdirectory("${CMAKE_SOURCE_DIR}/libs/onetracker_core")
-    target_link_libraries(${PACKAGE_NAME} PRIVATE onetracker_core)
+    target_link_libraries(${PACKAGE_NAME} PRIVATE
+        onetracker_core
+        ocpn::wxcurl
+    )
   endif ()
 endmacro ()
