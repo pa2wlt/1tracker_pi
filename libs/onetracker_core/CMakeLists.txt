@@ -25,9 +25,13 @@ target_include_directories(onetracker_core PUBLIC
 target_compile_features(onetracker_core PUBLIC cxx_std_17)
 
 if (QT_ANDROID)
-  # On Android, libcurl / wxcurl / jsoncpp / wx live in the OpenCPN host
-  # process and resolve at dlopen. We only need headers at compile time.
-  # wx headers are provided by cmake/AndroidLibs.cmake via directory-scope
+  # On Android, only wx and the libcurl C ABI live in the OpenCPN host
+  # (libgorp) and resolve at dlopen — wxcurl and jsoncpp are static C++
+  # helpers that libgorp hides, so each plugin must compile its own copy.
+  # The actual wxcurl/jsoncpp linking happens at the plugin .so level
+  # in Plugin.cmake's QT_ANDROID branch; here we just expose their
+  # headers so onetracker_core's translation units compile. wx headers
+  # are provided by cmake/AndroidLibs.cmake via directory-scope
   # include_directories() (included from Plugin.cmake late_init()).
   target_include_directories(onetracker_core PUBLIC
       "${CMAKE_SOURCE_DIR}/opencpn-libs/jsoncpp/include"

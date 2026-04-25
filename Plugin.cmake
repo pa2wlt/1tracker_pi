@@ -140,16 +140,18 @@ macro(add_plugin_libraries)
         ${wxWidgets_LIBRARIES}
     )
   elseif (QT_ANDROID)
-    # Android: bundle wxcurl into the plugin .so so wxCurlHTTP vtable
-    # symbols (e.g. SetCurlHandleToDefaults) resolve at dlopen.
+    # Android: bundle wxcurl AND jsoncpp into the plugin .so so their C++
+    # class symbols (wxCurlHTTP::SetCurlHandleToDefaults,
+    # Json::Value::Value, Json::CharReaderBuilder, ...) resolve at dlopen.
     #
-    # The previous assumption "wx / curl / wxcurl / jsoncpp all resolve
-    # against the OpenCPN host (libgorp)" only holds for wx, jsoncpp and
-    # the libcurl C symbols. wxcurl is a static helper that each plugin
-    # is expected to compile in itself — libgorp does NOT export
-    # wxCurlBase / wxCurlHTTP class symbols, so dlopen fails with
+    # The pre-beta4 assumption "wx / curl / wxcurl / jsoncpp all resolve
+    # against the OpenCPN host (libgorp)" only holds for wx and the
+    # libcurl C ABI. wxcurl and jsoncpp are static C++ helpers that each
+    # plugin is expected to compile into itself — libgorp links them
+    # internally with hidden visibility so their class symbols are NOT
+    # exported. Without bundling, dlopen fails with errors like
     # "cannot locate symbol _ZN10wxCurlHTTP23SetCurlHandleToDefaults..."
-    # if we don't include wxcurl's TUs in our own .so.
+    # (beta3) or "_ZN4Json5ValueC1ENS_9ValueTypeE" (beta4).
     #
     # We can't add_subdirectory(opencpn-libs/curl) because its Android
     # branch swaps the 32/64-bit lib paths and would link the wrong-arch
@@ -166,11 +168,21 @@ macro(add_plugin_libraries)
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/include"
       )
     endif ()
+    add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/jsoncpp")
+    # Hide jsoncpp symbols inside our .so so multiple plugins bundling
+    # jsoncpp on the same device don't cross-resolve into each other's
+    # copy. Mirrors the -fvisibility=hidden hygiene that
+    # opencpn-libs/wxcurl applies to WXCURL_SRC.
+    if (TARGET JSONCPP_LIB)
+      set_property(TARGET JSONCPP_LIB APPEND_STRING PROPERTY
+                   COMPILE_FLAGS " -fvisibility=hidden")
+    endif ()
     add_subdirectory("${CMAKE_SOURCE_DIR}/opencpn-libs/wxcurl")
     add_subdirectory("${CMAKE_SOURCE_DIR}/libs/onetracker_core")
     target_link_libraries(${PACKAGE_NAME} PRIVATE
         onetracker_core
         ocpn::wxcurl
+        ocpn::jsoncpp
     )
   endif ()
 endmacro ()
