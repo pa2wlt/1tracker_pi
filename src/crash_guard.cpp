@@ -94,7 +94,71 @@ void installCrashHandler(const std::filesystem::path& dumpDir) {
 #else  // !_WIN32
 
 void installSehTranslator() {}
+
+#ifdef __ANDROID__
+// On Android, OpenCPN dies silently with no log breadcrumb when a plugin
+// crashes via SIGSEGV/SIGBUS/etc — `adb logcat` shows the kernel-level
+// fault but nothing from us. Install a minimal signal handler that emits
+// one async-signal-safe line to Android's logcat (tag "1tracker_pi") with
+// the signal number and fault address, then re-raises to the default
+// handler so OpenCPN still terminates as the OS expects. Re-raising is
+// important: swallowing the signal would corrupt process state.
+//
+// Limited to async-signal-safe operations: snprintf is technically not on
+// the POSIX safe list, but in practice glibc/bionic implementations are
+// reentrant for simple format strings, and Android's __android_log_write
+// uses a kernel device write internally. Worst case the handler itself
+// crashes during logging, in which case we get the same outcome as before
+// (silent OpenCPN death).
+
+#include <android/log.h>
+#include <signal.h>
+#include <unistd.h>
+
+#include <cstdio>
+#include <cstring>
+#include <mutex>
+
+namespace {
+
+void crashSignalHandler(int sig, siginfo_t* info, void* /*ctx*/) {
+  char buffer[256];
+  void* faultAddr = info != nullptr ? info->si_addr : nullptr;
+  std::snprintf(buffer, sizeof(buffer),
+                "1tracker_pi: caught signal %d (%s) at addr=%p tid=%d",
+                sig, strsignal(sig), faultAddr,
+                static_cast<int>(gettid()));
+  __android_log_write(ANDROID_LOG_ERROR, "1tracker_pi", buffer);
+
+  // Reset to default handler and re-raise so the process actually dies.
+  // Without this we'd loop forever if the same signal re-fires.
+  struct sigaction dfl = {};
+  dfl.sa_handler = SIG_DFL;
+  sigemptyset(&dfl.sa_mask);
+  sigaction(sig, &dfl, nullptr);
+  raise(sig);
+}
+
+}  // namespace
+
+void installCrashHandler(const std::filesystem::path&) {
+  static std::once_flag once;
+  std::call_once(once, [] {
+    struct sigaction sa = {};
+    sa.sa_sigaction = crashSignalHandler;
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&sa.sa_mask);
+    for (int sig : {SIGSEGV, SIGBUS, SIGABRT, SIGFPE, SIGILL}) {
+      sigaction(sig, &sa, nullptr);
+    }
+  });
+}
+
+#else  // !__ANDROID__
+
 void installCrashHandler(const std::filesystem::path&) {}
+
+#endif  // __ANDROID__
 
 #endif  // _WIN32
 
