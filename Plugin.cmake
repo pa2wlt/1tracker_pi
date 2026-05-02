@@ -189,25 +189,27 @@ macro(add_plugin_libraries)
         ocpn::wxcurl
         ocpn::jsoncpp
     )
-    # Hide every symbol pulled in from a static archive so our bundled
-    # libcurl/libssl/libcrypto/jsoncpp/wxcurl don't get exported from
-    # lib1tracker_pi.so. Without this, two plugins on the same device
-    # both bundling these libs would cross-resolve into whichever loaded
-    # first — fine for identical versions, undefined behaviour otherwise
-    # (especially OpenSSL state). The plugin's exported entrypoints
-    # (create_pi/destroy_pi/...) live in our own .cpp objects and are
-    # unaffected.
+    # Beta11 logged "curl_version=libcurl/7.78.0-DEV OpenSSL/1.1.0c" on a
+    # tablet running OpenCPN 5.14 — that is libgorp's bundled libcurl,
+    # not our own libcurl 7.83.1. Despite -Wl,-Bsymbolic-functions, our
+    # internal calls were still resolving via the runtime PLT and binding
+    # to libgorp's already-loaded copy. Investigation: -Wl,--exclude-libs,
+    # ALL was stripping our libcurl/openssl symbols from .dynsym, which
+    # made -Bsymbolic-functions a no-op for those references (lld only
+    # binds symbolically against symbols that remain in the dynamic
+    # table). PLT fell back to runtime lookup, libgorp won.
     #
-    # -Bsymbolic-functions covers the inbound side: function references
-    # inside lib1tracker_pi.so resolve against our own static archives
-    # FIRST, before falling back to anything libgorp may have accidentally
-    # exported. Without this, a stray default-visibility OpenSSL symbol
-    # in libgorp could pull half our calls into libgorp's hidden static
-    # copy of openssl while the other half hit ours, leaving SSL_CTX
-    # structures half-initialised. Suspected contributor to the
-    # addr=0x230 SIGSEGV on the first scheduled HTTP send.
+    # Replace --exclude-libs,ALL with an explicit version script that
+    # only exposes the OpenCPN plugin entry points (create_pi/destroy_pi)
+    # via .dynsym. Everything else, including all of libcurl/libssl/
+    # libcrypto/jsoncpp/wxcurl, stays in .dynsym for symbolic binding
+    # but hidden from external lookup. -Bsymbolic-functions then binds
+    # all of our internal function references to our own copies at link
+    # time. Result: our wxCurlBase::Init calls our curl_global_init
+    # calls our OpenSSL init — one consistent stack, no cross-resolution
+    # with libgorp's older libcurl/OpenSSL pair.
     target_link_options(${PACKAGE_NAME} PRIVATE
-        "-Wl,--exclude-libs,ALL"
+        "-Wl,--version-script=${CMAKE_SOURCE_DIR}/cmake/plugin-android.ver"
         "-Wl,-Bsymbolic-functions")
   endif ()
 endmacro ()

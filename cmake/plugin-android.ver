@@ -1,0 +1,7 @@
+{
+  global:
+    create_pi;
+    destroy_pi;
+  local:
+    *;
+};
