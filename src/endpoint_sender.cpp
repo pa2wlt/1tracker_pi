@@ -6,13 +6,33 @@
 #include <sstream>
 
 #include <curl/curl.h>
+#include <wx/log.h>
 #include <wx/string.h>
 
 #include <wx/curl/base.h>
 #include <wx/curl/http.h>
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#endif
+
 namespace tracker_pi {
 namespace {
+
+// Beta8 dies via SIGSEGV at addr=0x230 somewhere inside send() on the first
+// scheduled HTTP post on Android, with no breadcrumb beyond "send start".
+// Drop a step trace through the function so beta9's logcat pinpoints the
+// exact line. wxLogMessage routes to opencpn.log on every platform; on
+// Android we also mirror to logcat under tag "1tracker_pi" with ERROR level
+// so `adb logcat -s 1tracker_pi:E '*:F'` captures it even if wx's buffered
+// log fd doesn't flush before the crash.
+void logSendStep(const char* step) {
+#ifdef __ANDROID__
+  __android_log_print(ANDROID_LOG_ERROR, "1tracker_pi",
+                      "1tracker_pi: send step=%s", step);
+#endif
+  wxLogMessage("1tracker_pi: send step=%s", step);
+}
 
 class TrackerHttpClient final : public wxCurlHTTP {
 public:
@@ -106,19 +126,29 @@ std::string buildFailureMessage(const TrackerHttpClient& client, bool posted,
 
 EndpointSender::Result EndpointSender::send(const EndpointConfig& endpoint,
                                             const std::string& payload) const {
+  logSendStep("entered");
   initWxCurl();
+  logSendStep("after_init_wx_curl");
   const auto& behavior = getEndpointTypeBehavior(endpoint);
+  logSendStep("after_get_behavior");
   if (const auto validationError = behavior.validate(endpoint);
       validationError.has_value()) {
+    logSendStep("validation_failed");
     return validationFailureResult(*validationError);
   }
+  logSendStep("after_validate");
 
   const EndpointRequest request = behavior.buildRequest(endpoint, payload);
+  logSendStep("after_build_request");
   TrackerHttpClient client(wxString::FromUTF8(endpoint.url.c_str()));
+  logSendStep("after_client_ctor");
   addRequestHeaders(client, request);
+  logSendStep("after_add_headers");
   configureTimeouts(client, endpoint);
+  logSendStep("after_configure_timeouts");
 
   const bool posted = client.Post(request.body.data(), request.body.size());
+  logSendStep(posted ? "post_returned_true" : "post_returned_false");
   if (!posted) {
     Result result;
     result.httpStatus = 0;
@@ -128,6 +158,7 @@ EndpointSender::Result EndpointSender::send(const EndpointConfig& endpoint,
 
   const long httpStatus = client.GetResponseCode();
   const auto responseBody = client.GetResponseBody();
+  logSendStep("after_read_response");
   if (behavior.responseIndicatesSuccess(httpStatus, responseBody)) {
     return makeSuccessResult(httpStatus, responseBody, endpoint);
   }
