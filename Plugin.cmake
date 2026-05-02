@@ -166,10 +166,26 @@ macro(add_plugin_libraries)
       target_include_directories(_curl_android INTERFACE
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/include"
       )
+      # --whole-archive forces every symbol from libssl/libcrypto into
+      # our .so, not just the ones our libcurl 7.78 happens to call. The
+      # default incremental link leaves symbols like ENGINE_*,
+      # OPENSSL_LH_*, OPENSSL_DIR_* as UND in our .dynsym, which the
+      # Android runtime then satisfies from libgorp's bundled OpenSSL
+      # 1.1.0c. Our gaps + libgorp's fill = mixed OpenSSL state across
+      # incompatible struct layouts (1.1.0c vs 1.1.1l), which is what
+      # crashes curl_easy_perform during the SSL handshake (the
+      # addr=0x230 SIGSEGV we have been chasing since beta8).
+      #
+      # Pulling in the full archives bloats the .so by a few MB but
+      # guarantees one self-contained OpenSSL 1.1.1l copy: every
+      # SSL_CTX / SSL / EVP / ENGINE call now resolves to the matching
+      # OpenSSL build it was compiled against.
       target_link_libraries(_curl_android INTERFACE
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcurl.a"
+          "-Wl,--whole-archive"
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/libssl.a"
           "${CMAKE_SOURCE_DIR}/opencpn-libs/curl/openssl/${CMAKE_ANDROID_ARCH_ABI}/lib/libcrypto.a"
+          "-Wl,--no-whole-archive"
           z
       )
     endif ()
