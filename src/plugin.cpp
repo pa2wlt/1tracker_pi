@@ -329,6 +329,12 @@ int OneTrackerPi::Init() {
 
   tracker_pi::runGuarded("Init:createScheduler",
                          [this] { createScheduler(); }, logger);
+  // Prewarm libcurl + OpenSSL on the OpenCPN main thread. The scheduler
+  // worker thread spins up inside configureAndStartScheduler, and on
+  // Android the first curl_easy_init / OpenSSL lazy init from a thread
+  // that didn't exist at dlopen time is a known crash trigger.
+  tracker_pi::runGuarded("Init:prewarmCurl",
+                         [] { tracker_pi::EndpointSender::Prewarm(); }, logger);
   tracker_pi::runGuarded("Init:configureAndStartScheduler",
                          [this] { configureAndStartScheduler(); }, logger);
   tracker_pi::runGuarded("Init:initializeToolbarTool",

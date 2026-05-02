@@ -198,6 +198,19 @@ EndpointSender::Result EndpointSender::send(const EndpointConfig& endpoint,
   return result;
 }
 
+void EndpointSender::Prewarm() {
+  logSendStep("prewarm_entered");
+  initWxCurl();
+  // Construct + immediately destroy a wxCurlHTTP. Whatever the calling
+  // thread is, this forces curl_easy_init/cleanup to run on it, which on
+  // Android allocates TLS slots and triggers any lazy OpenSSL ctors that
+  // CURL_GLOBAL_ALL didn't already cover. The URL is a placeholder; we
+  // never call .Post() so no network I/O happens.
+  TrackerHttpClient probe(wxT("http://prewarm.invalid/"));
+  logSendStep(probe.IsOk() ? "prewarm_probe_ok" : "prewarm_probe_null_handle");
+  logSendStep("prewarm_done");
+}
+
 std::string EndpointSender::MaskSecret(const std::string& secret) {
   if (secret.empty()) {
     return "";

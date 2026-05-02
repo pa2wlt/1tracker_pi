@@ -197,7 +197,17 @@ macro(add_plugin_libraries)
     # (especially OpenSSL state). The plugin's exported entrypoints
     # (create_pi/destroy_pi/...) live in our own .cpp objects and are
     # unaffected.
+    #
+    # -Bsymbolic-functions covers the inbound side: function references
+    # inside lib1tracker_pi.so resolve against our own static archives
+    # FIRST, before falling back to anything libgorp may have accidentally
+    # exported. Without this, a stray default-visibility OpenSSL symbol
+    # in libgorp could pull half our calls into libgorp's hidden static
+    # copy of openssl while the other half hit ours, leaving SSL_CTX
+    # structures half-initialised. Suspected contributor to the
+    # addr=0x230 SIGSEGV on the first scheduled HTTP send.
     target_link_options(${PACKAGE_NAME} PRIVATE
-        "-Wl,--exclude-libs,ALL")
+        "-Wl,--exclude-libs,ALL"
+        "-Wl,-Bsymbolic-functions")
   endif ()
 endmacro ()
