@@ -1,0 +1,231 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: opencpn\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-04-24 23:33+0200\n"
+"PO-Revision-Date: 2026-05-12 11:09\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Crowdin-Project: opencpn\n"
+"X-Crowdin-Project-ID: 49843\n"
+"X-Crowdin-Language: fr\n"
+"X-Crowdin-File: /plugins/1tracker_pi/po/1tracker_pi.pot\n"
+"X-Crowdin-File-ID: 470\n"
+
+#: src/endpoint_error_summary.cpp:27
+msgid "The authorization token is invalid or expired."
+msgstr "Le jeton d'autorisation est invalide ou a expiré."
+
+#: src/endpoint_error_summary.cpp:28
+msgid "The server name could not be resolved."
+msgstr "Le nom du serveur n'a pas pu être trouvé."
+
+#: src/endpoint_error_summary.cpp:29 src/endpoint_error_summary.cpp:30
+msgid "Could not connect to the server."
+msgstr "Impossible de se connecter au serveur."
+
+#: src/endpoint_error_summary.cpp:31
+msgid "The server took too long to respond."
+msgstr "Le serveur a mis trop de temps à répondre."
+
+#: src/endpoint_error_summary.cpp:32
+msgid "The server rejected the credentials."
+msgstr "Le serveur a rejeté les identifiants."
+
+#: src/endpoint_error_summary.cpp:33
+msgid "The server refused this request."
+msgstr "Le serveur a refusé cette requête."
+
+#: src/endpoint_error_summary.cpp:34
+msgid "The tracking URL could not be found."
+msgstr "L'URL de suivi est introuvable."
+
+#: src/endpoint_error_summary.cpp:35
+msgid "The server responded, but rejected the tracking data."
+msgstr "Le serveur a répondu, mais a rejeté les données de suivi."
+
+#: src/endpoint_error_summary.cpp:42
+msgid "Your NFL boat key is missing or invalid."
+msgstr "Votre clé de bateau NFL est manquante ou invalide."
+
+#: src/endpoint_error_summary.cpp:44
+msgid "The API key was not accepted by the server."
+msgstr "La clé API n'a pas été acceptée par le serveur."
+
+#: src/endpoint_error_summary.cpp:46
+msgid "The server returned an error while processing the tracking request."
+msgstr "Le serveur a renvoyé une erreur lors du traitement de la requête de suivi."
+
+#: src/endpoint_error_summary.cpp:48
+msgid "Tracking could not be sent. Check the technical details below."
+msgstr "La position n'a pas pu être envoyée. Vérifiez les détails techniques ci-dessous."
+
+#: src/endpoint_type_picker.cpp:23 src/tracker_dialog.cpp:1018
+msgid "NoForeignLand"
+msgstr "NoForeignLand"
+
+#: src/endpoint_type_picker.cpp:26 src/tracker_dialog.cpp:1021
+msgid "Generic HTTP JSON with header key"
+msgstr "JSON HTTP générique avec la clé d'en-tête"
+
+#: src/endpoint_type_picker.cpp:56
+msgid "Pick the tracker type. The type cannot be changed after the tracker is created."
+msgstr "Choisissez le type de traqueur. Le type ne peut pas être modifié après la création du traqueur."
+
+#: src/endpoint_type_picker.cpp:58
+msgid "New tracker"
+msgstr "Nouveau traqueur"
+
+#: src/http_json_endpoint_page.cpp:44 src/nfl_endpoint_page.cpp:44
+#: src/tracker_dialog.cpp:345
+msgid "Send interval"
+msgstr "Intervalle d'envoi"
+
+#: src/http_json_endpoint_page.cpp:53
+msgid "minutes, if moved at least"
+msgstr "minutes, si déplacé d'au moins"
+
+#: src/http_json_endpoint_page.cpp:62
+msgid "meters"
+msgstr "mètres"
+
+#: src/http_json_endpoint_page.cpp:67
+msgid "Include wind"
+msgstr "Inclure le vent"
+
+#: src/http_json_endpoint_page.cpp:73
+msgid "URL"
+msgstr "URL"
+
+#: src/http_json_endpoint_page.cpp:80
+msgid "Timeout"
+msgstr "Délai dépassé"
+
+#: src/http_json_endpoint_page.cpp:88
+msgid "seconds"
+msgstr "secondes"
+
+#: src/http_json_endpoint_page.cpp:93
+msgid "Header name"
+msgstr "Nom de l'en-tête"
+
+#: src/http_json_endpoint_page.cpp:99
+msgid "Value"
+msgstr "Valeur"
+
+#: src/http_json_endpoint_page.cpp:123 src/http_json_endpoint_page.cpp:240
+#: src/http_json_endpoint_page.cpp:264 src/nfl_endpoint_page.cpp:102
+#: src/nfl_endpoint_page.cpp:179 src/nfl_endpoint_page.cpp:200
+msgid "Show technical details"
+msgstr "Afficher les détails techniques"
+
+#: src/http_json_endpoint_page.cpp:224 src/nfl_endpoint_page.cpp:169
+#, c-format
+msgid "Last call: %s"
+msgstr "Dernier appel : %s"
+
+#: src/http_json_endpoint_page.cpp:263 src/nfl_endpoint_page.cpp:199
+msgid "Hide technical details"
+msgstr "Masquer les détails techniques"
+
+#: src/nfl_endpoint_page.cpp:52 src/tracker_dialog.cpp:920
+msgid "minutes"
+msgstr "minutes"
+
+#: src/nfl_endpoint_page.cpp:58
+msgid "My NFL API key"
+msgstr "Ma clé API NFL"
+
+#: src/nfl_endpoint_page.cpp:68
+msgid "To get your API key, open"
+msgstr "Pour obtenir votre clé API, ouvrez"
+
+#: src/nfl_endpoint_page.cpp:75
+msgid "Boat Tracking Settings"
+msgstr "Paramètres de suivi du bateau"
+
+#: src/nfl_endpoint_page.cpp:81
+msgid "in NFL."
+msgstr "dans NFL."
+
+#: src/tracker_dialog.cpp:242
+msgid "1tracker Preferences"
+msgstr "Préférences 1tracker"
+
+#: src/tracker_dialog.cpp:243
+msgid "Tracking"
+msgstr "Suivi de position"
+
+#: src/tracker_dialog.cpp:344 src/tracker_dialog.cpp:440
+msgid "Name"
+msgstr "Nom"
+
+#: src/tracker_dialog.cpp:346
+msgid "Last successful send"
+msgstr "Dernier envoi réussi"
+
+#: src/tracker_dialog.cpp:347
+msgid "Status"
+msgstr "Statut"
+
+#: src/tracker_dialog.cpp:371
+msgid "Add tracker"
+msgstr "Ajouter un traqueur"
+
+#: src/tracker_dialog.cpp:372 src/tracker_dialog.cpp:580
+msgid "Close"
+msgstr "Fermer"
+
+#: src/tracker_dialog.cpp:444
+msgid "Type"
+msgstr "Type"
+
+#: src/tracker_dialog.cpp:531
+msgid "The 1tracker plugin automatically sends your location to a website via API calls. You can configure a custom website, or a standard noforeignland endpoint."
+msgstr "Le plugin 1tracker envoie automatiquement votre localisation à un site Web via des appels API. Vous pouvez configurer un site Web personnalisé, ou un point de terminaison standard noforeignland."
+
+#: src/tracker_dialog.cpp:538
+msgid "Online manual: "
+msgstr "Manuel en ligne : "
+
+#: src/tracker_dialog.cpp:550
+msgid "Report issues or requests: "
+msgstr "Signaler des problèmes ou des demandes : "
+
+#: src/tracker_dialog.cpp:564
+msgid "Settings are stored in a configuration file here on your local machine: "
+msgstr "Les paramètres sont stockés dans un fichier de configuration ici sur votre machine locale : "
+
+#: src/tracker_dialog.cpp:599
+msgid "Help"
+msgstr "Aide"
+
+#: src/tracker_dialog.cpp:600
+msgid "Cancel"
+msgstr "Annuler"
+
+#: src/tracker_dialog.cpp:601
+msgid "OK"
+msgstr "Ok"
+
+#: src/tracker_dialog.cpp:919
+msgid "minute"
+msgstr "minute"
+
+#: src/tracker_dialog.cpp:977
+msgid "Active"
+msgstr "Actif"
+
+#: src/tracker_dialog.cpp:979
+msgid "Issue"
+msgstr "Problème"
+
+#: src/tracker_dialog.cpp:983
+msgid "Inactive"
+msgstr "Inactif"
+
